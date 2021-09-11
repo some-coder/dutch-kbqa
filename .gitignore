@@ -1,0 +1,11 @@
+# Don't include the Google Cloud API key
+google-cloud-key.json
+
+
+# JetBrains caches
+.idea/
+
+
+# Python
+__pycache__/
+
