@@ -5,11 +5,12 @@ Methods to integrate new translations to the Python-interpreted version of the J
 
 import csv
 import re
+import requests
 
 from constants import ORIGINAL_DATA_FILE, TRANSLATIONS_FILE
 from convert import Language, EntityLocatingTechnique, NaturalLanguageQuestion, SPARQLAnswer, QAPair, qa_pairs_from_json
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 BRACKETS_PATTERN: str = '\\[[^]]+]'
@@ -56,6 +57,39 @@ def _mod_pattern_entities_version(qa_pair: QAPair, language: Language) -> str:
 		tuple(re.findall(MOD_PATTERN, mpe))
 
 
+def freebase_mid_to_wikidata_and_natural_languages(
+		freebase_mid: str,
+		languages: Tuple[Language, ...]) -> Tuple[str, Dict[Language, str]]:
+	"""
+	Obtains the Wikidata entity ID plus natural language name(s) for the given Freebase MID.
+
+	We regard the first response as being the ground truth. This, of course, need not necessarily be appropriate.
+
+	:param freebase_mid: The Freebase MID to use.
+	:param languages: The language(s) to get the entity labels for.
+	:returns: A two-tuple of (1) a Wikidata entity ID, and (2) a mapping from languages to labels.
+	"""
+	if len(languages) == 0:
+		raise ValueError('[freebase_mid_to_wikidata_natural_languages] At least one language needs to be given!')
+	url: str = 'https://query.wikidata.org/sparql'
+	query: str = \
+		'%s {\n  %s .\n  %s .\n  %s .\n}' % \
+		(
+			'SELECT * WHERE',
+			'?subject wdt:P646 "/m/%s"' % freebase_mid.replace('m.', ''),
+			'?subject rdfs:label ?name',
+			'filter(lang(?name) = "%s")'
+		)
+	wd_id: Optional[str] = None
+	names: Dict[Language, str] = {}
+	for language in languages:
+		req = requests.get(url, params={'format': 'json', 'query': query % language.value}).json()
+		best_binding: Dict[str, Dict[str, str]] = req['results']['bindings'][0]
+		wd_id = re.sub('(http)(s)?(://www.wikidata.org/entity/)', '', best_binding['subject']['value'])
+		names[language] = best_binding['name']['value']
+	return wd_id, names
+
+
 def integrate(qa_pairs: List[QAPair], location: Path, language: Language, english_entities: bool = False) -> None:
 	"""
 	Integrates the new translations in the CSV file at the specified location to the supplied list of QA pairs.
@@ -92,5 +126,4 @@ def integrate(qa_pairs: List[QAPair], location: Path, language: Language, englis
 
 
 if __name__ == '__main__':
-	questions_answers = qa_pairs_from_json(Path(ORIGINAL_DATA_FILE))
-	integrate(questions_answers, Path(TRANSLATIONS_FILE), Language.DUTCH, english_entities=False)
+	print(freebase_mid_to_wikidata_and_natural_languages('m.0f8l9c', (Language.ENGLISH, Language.DUTCH)))
