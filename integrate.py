@@ -72,6 +72,7 @@ def integrate(qa_pairs: List[QAPair], location: Path, language: Language, englis
 	"""
 	with open(location, 'r') as handle:
 		reader = csv.reader(handle)
+		error_count: int = 0
 		for row in reader:
 			row: Tuple[int, int, str] = (int(row[0]), int(row[1]), row[2])  # index, CFQ ID, translation
 			if qa_pairs[row[0]].identifier != row[1]:
@@ -83,9 +84,11 @@ def integrate(qa_pairs: List[QAPair], location: Path, language: Language, englis
 				qa_pairs[row[0]].q.representations[language][EntityLocatingTechnique.MOD_PATTERN_ENTITIES] = \
 					_mod_pattern_entities_version(qa_pairs[row[0]], language)
 			except TypeError:
+				error_count += 1
 				print(
 					'(%4d) %s' %
 					(row[0], qa_pairs[row[0]].q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS)))
+		print('\n\nERROR COUNT: %3d.' % (error_count,))
 
 
 if __name__ == '__main__':
