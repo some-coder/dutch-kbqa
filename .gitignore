@@ -8,4 +8,5 @@ google-cloud-key.json
 
 # Python
 __pycache__/
+.venv/
 

@@ -24,7 +24,8 @@ def translate_text(text: str, target_language: Language) -> str:
 	"""
 	client = tl.Client()
 	if isinstance(text, six.binary_type):
-		text = text.decode('utf-8')
+		text: six.binary_type
+		text: str = text.decode('utf-8')
 	result: Dict[str, str] = cast(Dict[str, str], client.translate(text, target_language=target_language.value))
 	return result['translatedText']
 
