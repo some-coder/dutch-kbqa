@@ -14,6 +14,23 @@ from pathlib import Path
 from typing import Dict, List, Tuple, cast
 
 
+ACCESS_CONFIRM_STRING: str = 'Truly access Google Cloud Translate? (y/n) '
+
+
+def _confirm_access() -> None:
+	"""
+	Internal use. Determine whether the user truly wants to access Google Cloud.
+
+	If the user responds negatively, the program exits through this method.
+	"""
+	access_confirmation_response: str = input(ACCESS_CONFIRM_STRING)
+	while access_confirmation_response not in ('y', 'n'):
+		access_confirmation_response = input(ACCESS_CONFIRM_STRING)
+	if access_confirmation_response == 'n':
+		print('Not accessing Google Cloud Translate. Aborting...')
+		exit(0)
+
+
 def translate_text(text: str, target_language: Language) -> str:
 	"""
 	Translates the supplied text to the given target language.
@@ -64,6 +81,7 @@ def translate_questions(qas: List[QAPair], target_language: Language, working_ra
 
 if __name__ == '__main__':
 	# grab all translations from Google Cloud Translate and store it in a CSV file
+	_confirm_access()
 	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(os.getcwd(), GOOGLE_CLOUD_KEY_FILE)
 	questions_answers = qa_pairs_from_json(Path(ORIGINAL_DATA_FILE))
 	translate_questions(questions_answers, Language.DUTCH, (0, len(questions_answers)))
