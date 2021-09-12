@@ -1,9 +1,14 @@
+"""
+Methods for translating Python-interpretable question-answer pairs to new languages, like Dutch.
+"""
+
+
 import csv
 import os
 import six
 
 from constants import GOOGLE_CLOUD_KEY_FILE, ORIGINAL_DATA_FILE, TRANSLATIONS_FILE
-from encode import EntityLocatingTechnique, Language, QAPair, qa_pairs_from_json
+from convert import EntityLocatingTechnique, Language, QAPair, qa_pairs_from_json
 from google.cloud import translate_v2 as tl
 from pathlib import Path
 from typing import Dict, List, Tuple, cast
@@ -43,7 +48,9 @@ def translate_questions(qas: List[QAPair], target_language: Language, working_ra
 	with open(TRANSLATIONS_FILE, 'a') as handle:
 		writer = csv.writer(handle)
 		for index in range(start, end):
-			print('%4d/%4d (%5.2lf%%)' % (index + 1, end, ((start - index + 1) / (end - start)) * 1e2))
+			print(
+				'(index: %4d) %4d/%4d (%5.2lf%%)' %
+				(index + 1, start - index + 1, end - start, ((start - index + 1) / (end - start)) * 1e2))
 			identifier: int = qas[index].identifier
 			text: str = qas[index].q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS, question_mark=True)
 			translation: str = translate_text(text, target_language)
@@ -55,6 +62,7 @@ def translate_questions(qas: List[QAPair], target_language: Language, working_ra
 
 
 if __name__ == '__main__':
+	# grab all translations from Google Cloud Translate and store it in a CSV file
 	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(os.getcwd(), GOOGLE_CLOUD_KEY_FILE)
 	questions_answers = qa_pairs_from_json(Path(ORIGINAL_DATA_FILE))
-	translate_questions(questions_answers, Language.DUTCH, (8373, len(questions_answers)))
+	translate_questions(questions_answers, Language.DUTCH, (0, len(questions_answers)))

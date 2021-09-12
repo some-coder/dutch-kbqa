@@ -1,3 +1,8 @@
+"""
+Methods for converting a JSON file to a Python-interpretable list of question-answer pairs.
+"""
+
+
 import json
 import re
 
@@ -18,7 +23,7 @@ class Language(Enum):
 	ENGLISH = 'en'
 	HEBREW = 'he'
 	KANNADA = 'kn'
-	CHINESE = 'zh'  # this is simplified Chinese
+	CHINESE = 'zh'  # this is simplified Chinese, as opposed to traditional Chinese
 	DUTCH = 'nl'
 
 
@@ -97,6 +102,11 @@ class NaturalLanguageQuestion:
 			return question
 
 	def __str__(self) -> str:
+		"""
+		Returns a string representation of the natural language question.
+
+		:returns: The string representation.
+		"""
 		return 'NLQuestion(...)'
 
 
@@ -127,10 +137,18 @@ class SPARQLAnswer:
 			raise ValueError('[%s] Could not find the technique \'%s\'!' % (self.__class__.__name__, technique.value,))
 
 	def __str__(self) -> str:
+		"""
+		Returns a string representation of the SPARQL answer.
+
+		:returns: The string representation.
+		"""
 		return 'SPARQLAnswer(...)'
 
 
 class QAPair:
+	"""
+	A combination of a question in one or more natural languages plus a SPARQL answer representation.
+	"""
 
 	def __init__(
 			self,
@@ -139,6 +157,15 @@ class QAPair:
 			q: NaturalLanguageQuestion,
 			a: SPARQLAnswer,
 			result: bool) -> None:
+		"""
+		Constructs the question-answer pair.
+
+		:param identifier: The Compositional Freebase Questions (CFQ) ID of the QA pair.
+		:param depth: The recursion depth of this QA pair.
+		:param q: The natural language question.
+		:param a: The SPARQL answer.
+		:param result: Whether the result is affirmative or negative.
+		"""
 		self.identifier = identifier
 		self.depth = depth
 		self.q = q
@@ -146,10 +173,20 @@ class QAPair:
 		self.result = result
 
 	def __str__(self) -> str:
+		"""
+		Represents the question-answer pair in string form.
+
+		:returns: The string representation.
+		"""
 		return 'QAPair(id=%d, depth=%d, q=%s, a=%s)' % (self.identifier, self.depth, str(self.q), str(self.a))
 
 
 def _language_of_key(key: str) -> Language:
+	"""
+	Internal use. Given a JSON key, determines the language associated with said key.
+
+	:returns: The key's language.
+	"""
 	mt = re.search('(_)[a-z]{2}$', key)
 	if mt is None:
 		return Language.ENGLISH
@@ -165,12 +202,26 @@ def _add_to_representations(
 		language: Language,
 		technique: EntityLocatingTechnique,
 		value: str) -> None:
+	"""
+	Internal use. Adds the specified language-technique representation to the representations mapping.
+
+	:param rep: The representations map. Maps from natural languages and entity locating techniques to representations.
+	:param language: The language of the current representation.
+	:param technique: The entity locating technique of the current representation.
+	:param value: The current representation.
+	"""
 	if language not in rep:
 		rep[language] = {}
 	rep[language][technique] = value
 
 
 def _natural_language_question_from_raw_representation(raw: JSONQAPair) -> NaturalLanguageQuestion:
+	"""
+	Internal use. Extracts from a JSON object a natural language question.
+
+	:param raw: The raw JSON object to attempt to extract a natural language question from.
+	:returns: The natural language question.
+	"""
 	rep: Dict[Language, Dict[EntityLocatingTechnique, str]] = {}
 	for key, val in raw.items():
 		if re.search('(questionPatternModEntities)((_)[a-z]{2})?$', key):
@@ -181,6 +232,12 @@ def _natural_language_question_from_raw_representation(raw: JSONQAPair) -> Natur
 
 
 def _sparql_answer_from_raw_representation(raw: JSONQAPair) -> SPARQLAnswer:
+	"""
+	Internal use. Extracts from a JSON object a SPARQL answer.
+
+	:param raw: The raw JSON object to attempt to extract a SPARQL answer from.
+	:returns: The SPARQL answer.
+	"""
 	rep: Dict[EntityLocatingTechnique, str] = {}
 	for key, val in raw.items():
 		if re.search('(sparql)$', key):
@@ -193,6 +250,12 @@ def _sparql_answer_from_raw_representation(raw: JSONQAPair) -> SPARQLAnswer:
 
 
 def _qa_pair_from_raw_representation(raw: JSONQAPair) -> QAPair:
+	"""
+	Internal use. Extracts from a JSON object a question-answer pair.
+
+	:param raw: The raw JSON object to attempt to extract a question-answer pair from.
+	:returns: The question-answer pair.
+	"""
 	return QAPair(
 		identifier=raw['CFQquestionIdx'],
 		depth=raw['recursionDepth'],
@@ -219,6 +282,7 @@ def qa_pairs_from_json(location: Path) -> List[QAPair]:
 
 
 if __name__ == '__main__':
+	# count the number of characters of the JSON file's English questions, for use in the Google Translate API
 	questions_answers = qa_pairs_from_json(Path(ORIGINAL_DATA_FILE))
 	number_of_characters: int = 0
 	for question_answer in questions_answers:
