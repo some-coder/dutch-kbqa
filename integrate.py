@@ -222,7 +222,6 @@ def integrate(qa_pairs: List[QAPair], location: Path, language: Language, englis
 	"""
 	with open(location, 'r') as handle:
 		reader = csv.reader(handle)
-		error_count: int = 0
 		for r in reader:
 			r: Tuple[int, int, str] = (int(r[0]), int(r[1]), r[2])  # index, CFQ ID, translation
 			if qa_pairs[r[0]].identifier != r[1]:
@@ -230,27 +229,21 @@ def integrate(qa_pairs: List[QAPair], location: Path, language: Language, englis
 			qa_pairs[r[0]].q.representations[language] = {}
 			qa_pairs[r[0]].q.representations[language][EntityLocatingTechnique.WITH_BRACKETS] = \
 				_english_entities_version(qa_pairs[r[0]], language) if english_entities else r[2]
-			try:
-				# _resolve_unidentified_freebase_entities(qa_pairs[row[0]])
-				qa_pairs[r[0]].q.representations[language][EntityLocatingTechnique.MOD_PATTERN_ENTITIES] = \
-					_mod_pattern_entities_version(qa_pairs[r[0]], language)
-			except TypeError:
-				error_count += 1
-				print(
-					'(%4d) %s' %
-					(r[0], qa_pairs[r[0]].q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS)))
-		print('\n\nERROR COUNT: %3d.' % (error_count,))
+			# _resolve_unidentified_freebase_entities(qa_pairs[row[0]])
+			qa_pairs[r[0]].q.representations[language][EntityLocatingTechnique.MOD_PATTERN_ENTITIES] = \
+				_mod_pattern_entities_version(qa_pairs[r[0]], language)
 
 
-if __name__ == '__main__':
+def preprocessed_questions_answers(location: Path, mm: Dict[str, Dict[Language, str]]) -> List[QAPair]:
+	"""
+	Obtains the QA pairs at the supplied location, properly pre-processed.
+
+	:param location: The location to get the QA pairs from.
+	:param mm: A mapping from Freebase MIDs and languages to labels.
+	:returns: The pre-processed QA pairs.
+	"""
 	# get the original data
-	questions_answers = qa_pairs_from_json(Path(ORIGINAL_DATA_FILE))
-
-	# collect the unidentified Freebase MIDs
-	mm = _freebase_machine_ids(
-		questions_answers,
-		tuple(questions_answers[0].q.representations.keys()) + (Language.DUTCH,))
-
+	questions_answers = qa_pairs_from_json(location)
 	# repair the questions in the QA pairs object
 	for question_answer in questions_answers:
 		_resolve_unidentified_freebase_entities(question_answer, mm)
@@ -263,13 +256,60 @@ if __name__ == '__main__':
 				_replaced_html_character_references(
 					question_answer.q.representations[lang][EntityLocatingTechnique.MOD_PATTERN_ENTITIES]
 				)
+	return questions_answers
 
-	# repair the questions in the (Dutch) translations CSV file
-	rows = _resolve_unidentified_freebase_entities_csv(Path(ORIGINAL_TRANSLATIONS_FILE), mm, Language.DUTCH)
-	with open(MODIFIED_TRANSLATIONS_FILE, 'w') as hdl:
+
+def preprocessed_csv_file(
+		location: Path,
+		mm: Dict[str, Dict[Language, str]],
+		target_lang: Language,
+		target_location: Path) -> None:
+	"""
+	Preprocesses the CSV file for integration.
+
+	:param location: The location of the CSV file.
+	:param mm: A mapping from Freebase MIDs and languages to labels.
+	:param target_lang: The language of expressions in the CSV file.
+	:param target_location: The location to save the modified CSV file to. (We won't overwrite the original.)
+	"""
+	rows = _resolve_unidentified_freebase_entities_csv(location, mm, target_lang)
+	if target_lang != Language.DUTCH:
+		raise NotImplementedError('[preprocessed_csv_file] Language \'%s\' not (yet) supported!' % (target_lang,))
+	with open(target_location, 'w') as hdl:
 		writer = csv.writer(hdl)
-		for row in rows:
+		for index, row in enumerate(rows):
+			if index == 5374:
+				# Strange Google Cloud Translate behaviour: skip a symbol in one of the Freebase MIDs.
+				row = (row[0], row[1], row[2].replace('m. 07sc', '[Verenigd Koninkrijk]'))
 			writer.writerow((row[0], row[1], _replaced_html_character_references(row[2])))
 
-	# finally, integrate
-	integrate(questions_answers, Path(MODIFIED_TRANSLATIONS_FILE), Language.DUTCH, english_entities=False)
+
+def qa_pairs_with_dutch(
+		qa_loc: Path,
+		original_csv_loc: Path,
+		modified_csv_loc: Path) -> List[QAPair]:
+	"""
+	Yields the original JSON data as a Python-interpreted object, including the Dutch language for questions.
+
+	:param qa_loc: The location of the original QAs in JSON.
+	:param original_csv_loc: The location of the original Dutch translations CSV file.
+	:param modified_csv_loc: The location of where to save the modified Dutch translations CSV file.
+	:returns: The modified QA pairs.
+	"""
+	freebase_mm = _freebase_machine_ids(qa_pairs_from_json(qa_loc), tuple(lang for lang in Language))
+	qa_pairs = preprocessed_questions_answers(qa_loc, freebase_mm)
+	preprocessed_csv_file(
+		original_csv_loc,
+		freebase_mm,
+		Language.DUTCH,
+		modified_csv_loc)
+	integrate(qa_pairs, modified_csv_loc, Language.DUTCH, english_entities=False)
+	return qa_pairs
+
+
+if __name__ == '__main__':
+	with_dutch = qa_pairs_with_dutch(
+		Path(ORIGINAL_DATA_FILE),
+		Path(ORIGINAL_TRANSLATIONS_FILE),
+		Path(MODIFIED_TRANSLATIONS_FILE))
+	print(with_dutch[5374].q.form(Language.DUTCH, EntityLocatingTechnique.WITH_BRACKETS))
