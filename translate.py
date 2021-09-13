@@ -7,7 +7,7 @@ import csv
 import os
 import six
 
-from constants import GOOGLE_CLOUD_KEY_FILE, ORIGINAL_DATA_FILE, TRANSLATIONS_FILE
+from constants import GOOGLE_CLOUD_KEY_FILE, ORIGINAL_DATA_FILE, ORIGINAL_TRANSLATIONS_FILE
 from convert import EntityLocatingTechnique, Language, QAPair, qa_pairs_from_json
 from google.cloud import translate_v2 as tl
 from pathlib import Path
@@ -63,7 +63,7 @@ def translate_questions(qas: List[QAPair], target_language: Language, working_ra
 			(working_range[0], working_range[1]))
 	start: int = max(0, working_range[0])
 	end: int = min(len(qas), working_range[1])
-	with open(TRANSLATIONS_FILE, 'a') as handle:
+	with open(ORIGINAL_TRANSLATIONS_FILE, 'a') as handle:
 		writer = csv.writer(handle)
 		for index in range(start, end):
 			print(

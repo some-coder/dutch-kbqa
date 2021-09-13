@@ -6,15 +6,23 @@ Methods to integrate new translations to the Python-interpreted version of the J
 import csv
 import re
 import requests
+import time
 
-from constants import ORIGINAL_DATA_FILE, TRANSLATIONS_FILE
-from convert import Language, EntityLocatingTechnique, NaturalLanguageQuestion, SPARQLAnswer, QAPair, qa_pairs_from_json
+from constants import ORIGINAL_DATA_FILE, ORIGINAL_TRANSLATIONS_FILE, MODIFIED_TRANSLATIONS_FILE
+from convert import Language, EntityLocatingTechnique, QAPair, qa_pairs_from_json
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 
+# querying
+TOO_MANY_REQUESTS_CODE: int = 429
+WIKIDATA_QUERY_WAIT: float = float(60 // 30)
+WIKIDATA_RETRY_WAIT: float = 1e0
+
+# regular expressions
 BRACKETS_PATTERN: str = '\\[[^]]+]'
 MOD_PATTERN: str = '(M[0-9]+)'
+FREEBASE_MID_PATTERN: str = '( m\\.)[a-zA-Z0-9_]{2,7}'
 
 
 def _english_entities_version(qa_pair: QAPair, language: Language) -> str:
@@ -82,12 +90,120 @@ def freebase_mid_to_wikidata_and_natural_languages(
 		)
 	wd_id: Optional[str] = None
 	names: Dict[Language, str] = {}
+	print('Searching for labels for Freebase MID %s...' % (freebase_mid,))
 	for language in languages:
-		req = requests.get(url, params={'format': 'json', 'query': query % language.value}).json()
+		time.sleep(WIKIDATA_QUERY_WAIT)
+		req = requests.get(url, params={'format': 'json', 'query': query % language.value})
+		while req.status_code == TOO_MANY_REQUESTS_CODE:
+			time.sleep(WIKIDATA_RETRY_WAIT)
+			print('[freebase_mid_to_wikidata_and_natural_languages] Need to retry. Hold on for a second...')
+			req = requests.get(url, params={'format': 'json', 'query': query % language.value})
+		req = req.json()
 		best_binding: Dict[str, Dict[str, str]] = req['results']['bindings'][0]
 		wd_id = re.sub('(http)(s)?(://www.wikidata.org/entity/)', '', best_binding['subject']['value'])
 		names[language] = best_binding['name']['value']
+	print('\tFound! In English: %s.' % (names[Language.ENGLISH],))
 	return wd_id, names
+
+
+def _freebase_machine_ids(qa_pairs: List[QAPair], languages: Tuple[Language, ...]) -> Dict[str, Dict[Language, str]]:
+	"""
+	Internal use. Collects the set of unidentified Freebase MIDs from the QA pairs, and makes a map for it.
+
+	:param qa_pairs: The QA pairs to search for Freebase MIDs in.
+	:param languages: The natural language label languages to obtain.
+	:returns: A mapping from Freebase MIDs to language representations of the MIDs.
+	"""
+	machine_ids: Tuple[str, ...] = tuple()
+	for index, qa_pair in enumerate(qa_pairs):
+		rep = qa_pair.q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS)
+		for match in re.finditer(FREEBASE_MID_PATTERN, rep):
+			if match.group()[1:] not in machine_ids:
+				machine_ids += match.group()[1:],
+	m: Dict[str, Dict[Language, str]] = {}
+	for mid in machine_ids:
+		m[mid] = freebase_mid_to_wikidata_and_natural_languages(mid, languages)[1]
+	return m
+
+
+def _unidentified_freebase_entities(qa_pair: QAPair) -> Set[str]:
+	"""
+	Internal use. Collects all Freebase MIDs in the question that haven't been converted yet. May be empty.
+
+	:param qa_pair: The QA pair to search within.
+	:returns: The set. May be empty.
+	"""
+	s: Set[str] = set()
+	for language in qa_pair.q.representations.keys():
+		rep = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS)
+		for match in re.finditer(FREEBASE_MID_PATTERN, rep):
+			s.add(match.group()[1:])  # convert to the RDF version of the MIDs
+	return s
+
+
+def _resolve_unidentified_freebase_entities(qa_pair: QAPair, mid_map: Dict[str, Dict[Language, str]]) -> None:
+	"""
+	Internal use. Replaces any Freebase MIDs in the QA pair with proper entity names.
+
+	:param qa_pair: The QA pair to work on.
+	:param mid_map: The mapping from Freebase MIDs and languages to representations in said languages.
+	"""
+	for language in qa_pair.q.representations.keys():
+		rep = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS)
+		qa_pair.q.representations[language][EntityLocatingTechnique.WITH_BRACKETS] = \
+			re.sub(FREEBASE_MID_PATTERN, lambda match: ' [%s]' % (mid_map[match.group()[1:]][language],), rep)
+
+
+def _resolve_unidentified_freebase_entities_csv(
+		location: Path,
+		mid_map: Dict[str, Dict[Language, str]],
+		language: Language) -> List[Tuple[int, int, str]]:
+	"""
+	Internal use. Replaces any Freebase MIDs in the rows of the CSV file with proper entity names.
+
+	:param location: The location of the CSV file to alter.
+	:param mid_map: A mapping from Freebase MIDs and languages to natural language labels.
+	:param language: The language of the entries in the CSV file.
+	:returns: A list of rows. Each row stores a(n) (1) index, (2) CFQ ID, and (3) a natural language expression.
+	"""
+	resolved: List[Tuple[int, int, str]] = []
+	with open(location, 'r') as handle:
+		reader = csv.reader(handle)
+		for line in reader:
+			index: int = int(line[0])
+			cfq_id: int = int(line[1])
+			exp: str = \
+				re.sub(FREEBASE_MID_PATTERN, lambda match: ' [%s]' % (mid_map[match.group()[1:]][language]), line[2])
+			resolved.append((index, cfq_id, exp))
+	return resolved
+
+
+def _replaced_html_character_references(exp: str) -> str:
+	"""
+	Internal use. Returns the expression with the HTML character references ('&#hhhh;') replaced.
+
+	:param exp: The expression to work on.
+	:returns: The fixed expression.
+	"""
+	match = re.search('(&)((quot|amp|apos|lt|gt)|((#)[0-9]{2,4}))(;)?', exp)
+	while match is not None:
+		sp: Tuple[int, int] = match.span()
+		mt = match.group() + (';' if match.group()[-1] != ';' else '')
+		if mt == '&quot;':
+			exp = exp[:sp[0]] + '"' + exp[sp[1]:]
+		elif mt == '&amp;':
+			exp = exp[:sp[0]] + '&' + exp[sp[1]:]
+		elif mt == '&apos;':
+			exp = exp[:sp[0]] + '\'' + exp[sp[1]:]
+		elif mt == 'lt':
+			exp = exp[:sp[0]] + '<' + exp[sp[1]:]
+		elif mt == 'gt':
+			exp = exp[:sp[0]] + '>' + exp[sp[1]:]
+		else:
+			# must be a non-XML predefined HTML character code
+			exp = exp[:sp[0]] + chr(int(match.group()[2:-1])) + exp[sp[1]:]
+		match = re.search('(&)((quot|amp|apos|lt|gt)|((#)[0-9]{2,4}))(;)?', exp)
+	return exp
 
 
 def integrate(qa_pairs: List[QAPair], location: Path, language: Language, english_entities: bool = False) -> None:
@@ -107,23 +223,53 @@ def integrate(qa_pairs: List[QAPair], location: Path, language: Language, englis
 	with open(location, 'r') as handle:
 		reader = csv.reader(handle)
 		error_count: int = 0
-		for row in reader:
-			row: Tuple[int, int, str] = (int(row[0]), int(row[1]), row[2])  # index, CFQ ID, translation
-			if qa_pairs[row[0]].identifier != row[1]:
-				raise RuntimeError('[integrate] Inconsistent index and CFQ ID: %d and %d!' % (row[0], row[1]))
-			qa_pairs[row[0]].q.representations[language] = {}
-			qa_pairs[row[0]].q.representations[language][EntityLocatingTechnique.WITH_BRACKETS] = \
-				_english_entities_version(qa_pairs[row[0]], language) if english_entities else row[2]
+		for r in reader:
+			r: Tuple[int, int, str] = (int(r[0]), int(r[1]), r[2])  # index, CFQ ID, translation
+			if qa_pairs[r[0]].identifier != r[1]:
+				raise RuntimeError('[integrate] Inconsistent index and CFQ ID: %d and %d!' % (r[0], r[1]))
+			qa_pairs[r[0]].q.representations[language] = {}
+			qa_pairs[r[0]].q.representations[language][EntityLocatingTechnique.WITH_BRACKETS] = \
+				_english_entities_version(qa_pairs[r[0]], language) if english_entities else r[2]
 			try:
-				qa_pairs[row[0]].q.representations[language][EntityLocatingTechnique.MOD_PATTERN_ENTITIES] = \
-					_mod_pattern_entities_version(qa_pairs[row[0]], language)
+				# _resolve_unidentified_freebase_entities(qa_pairs[row[0]])
+				qa_pairs[r[0]].q.representations[language][EntityLocatingTechnique.MOD_PATTERN_ENTITIES] = \
+					_mod_pattern_entities_version(qa_pairs[r[0]], language)
 			except TypeError:
 				error_count += 1
 				print(
 					'(%4d) %s' %
-					(row[0], qa_pairs[row[0]].q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS)))
+					(r[0], qa_pairs[r[0]].q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS)))
 		print('\n\nERROR COUNT: %3d.' % (error_count,))
 
 
 if __name__ == '__main__':
-	print(freebase_mid_to_wikidata_and_natural_languages('m.0f8l9c', (Language.ENGLISH, Language.DUTCH)))
+	# get the original data
+	questions_answers = qa_pairs_from_json(Path(ORIGINAL_DATA_FILE))
+
+	# collect the unidentified Freebase MIDs
+	mm = _freebase_machine_ids(
+		questions_answers,
+		tuple(questions_answers[0].q.representations.keys()) + (Language.DUTCH,))
+
+	# repair the questions in the QA pairs object
+	for question_answer in questions_answers:
+		_resolve_unidentified_freebase_entities(question_answer, mm)
+		for lang in question_answer.q.representations.keys():
+			question_answer.q.representations[lang][EntityLocatingTechnique.WITH_BRACKETS] = \
+				_replaced_html_character_references(
+					question_answer.q.representations[lang][EntityLocatingTechnique.WITH_BRACKETS]
+				)
+			question_answer.q.representations[lang][EntityLocatingTechnique.MOD_PATTERN_ENTITIES] = \
+				_replaced_html_character_references(
+					question_answer.q.representations[lang][EntityLocatingTechnique.MOD_PATTERN_ENTITIES]
+				)
+
+	# repair the questions in the (Dutch) translations CSV file
+	rows = _resolve_unidentified_freebase_entities_csv(Path(ORIGINAL_TRANSLATIONS_FILE), mm, Language.DUTCH)
+	with open(MODIFIED_TRANSLATIONS_FILE, 'w') as hdl:
+		writer = csv.writer(hdl)
+		for row in rows:
+			writer.writerow((row[0], row[1], _replaced_html_character_references(row[2])))
+
+	# finally, integrate
+	integrate(questions_answers, Path(MODIFIED_TRANSLATIONS_FILE), Language.DUTCH, english_entities=False)
