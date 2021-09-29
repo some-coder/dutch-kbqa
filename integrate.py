@@ -41,8 +41,8 @@ def _english_entities_version(qa_pair: QAPair, language: Language) -> str:
 	supported_languages: Tuple[Language, ...] = (Language.DUTCH,)
 	if language not in supported_languages:
 		raise ValueError('[_english_entities_version] Language \'%s\' not supported!' % (language.value,))
-	english = qa_pair.q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS)
-	non_english = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS)
+	english = qa_pair.q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS, question_mark=False)
+	non_english = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS, question_mark=False)
 	return re.sub(BRACKETS_PATTERN, '[%s]', non_english) % tuple(t[1:-1] for t in re.findall(BRACKETS_PATTERN, english))
 
 
@@ -56,12 +56,12 @@ def _mod_pattern_entities_version(qa_pair: QAPair, language: Language) -> str:
 	:raises ValueError: When the QA pair does not have an English language version with a `WITH_BRACKETS` version, or
 		when the requested language does not have a `WITH_BRACKETS` version of the question.
 	"""
-	mpe = qa_pair.q.form(Language.ENGLISH, EntityLocatingTechnique.MOD_PATTERN_ENTITIES)
+	mpe = qa_pair.q.form(Language.ENGLISH, EntityLocatingTechnique.MOD_PATTERN_ENTITIES, question_mark=False)
 	return \
 		re.sub(
 			BRACKETS_PATTERN,
 			'%s',
-			qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS)) % \
+			qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS, question_mark=False)) % \
 		tuple(re.findall(MOD_PATTERN, mpe))
 
 
@@ -116,7 +116,7 @@ def _freebase_machine_ids(qa_pairs: List[QAPair], languages: Tuple[Language, ...
 	"""
 	machine_ids: Tuple[str, ...] = tuple()
 	for index, qa_pair in enumerate(qa_pairs):
-		rep = qa_pair.q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS)
+		rep = qa_pair.q.form(Language.ENGLISH, EntityLocatingTechnique.WITH_BRACKETS, question_mark=False)
 		for match in re.finditer(FREEBASE_MID_PATTERN, rep):
 			if match.group()[1:] not in machine_ids:
 				machine_ids += match.group()[1:],
@@ -135,7 +135,7 @@ def _unidentified_freebase_entities(qa_pair: QAPair) -> Set[str]:
 	"""
 	s: Set[str] = set()
 	for language in qa_pair.q.representations.keys():
-		rep = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS)
+		rep = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS, question_mark=False)
 		for match in re.finditer(FREEBASE_MID_PATTERN, rep):
 			s.add(match.group()[1:])  # convert to the RDF version of the MIDs
 	return s
@@ -149,7 +149,7 @@ def _resolve_unidentified_freebase_entities(qa_pair: QAPair, mid_map: Dict[str, 
 	:param mid_map: The mapping from Freebase MIDs and languages to representations in said languages.
 	"""
 	for language in qa_pair.q.representations.keys():
-		rep = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS)
+		rep = qa_pair.q.form(language, EntityLocatingTechnique.WITH_BRACKETS, question_mark=False)
 		qa_pair.q.representations[language][EntityLocatingTechnique.WITH_BRACKETS] = \
 			re.sub(FREEBASE_MID_PATTERN, lambda match: ' [%s]' % (mid_map[match.group()[1:]][language],), rep)
 
@@ -281,7 +281,7 @@ def preprocessed_csv_file(
 			if index == 5374:
 				# Strange Google Cloud Translate behaviour: skip a symbol in one of the Freebase MIDs.
 				row = (row[0], row[1], row[2].replace('m. 07sc', '[Verenigd Koninkrijk]'))
-			writer.writerow((row[0], row[1], _replaced_html_character_references(row[2])))
+			writer.writerow((row[0], row[1], re.sub('(\\?)+$', '', _replaced_html_character_references(row[2]))))
 
 
 def qa_pairs_with_dutch(

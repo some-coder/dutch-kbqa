@@ -10,7 +10,7 @@ from constants import ORIGINAL_DATA_FILE
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 
 JSONQAPair = Dict[str, Union[int, str, bool]]
@@ -68,7 +68,7 @@ class NaturalLanguageQuestion:
 		# remove question marks
 		for language, techniques_map in self.representations.items():
 			for technique, expr in techniques_map.items():
-				reg_exp: str = '[?\\uFF1F]{1}'
+				reg_exp: str = '[?\\uFF1F]+'
 				self.representations[language][technique] = re.sub(
 					reg_exp + '$' if language_is_left_to_right(language) else '^' + reg_exp, '', expr)
 
@@ -109,6 +109,18 @@ class NaturalLanguageQuestion:
 		"""
 		return 'NLQuestion(...)'
 
+	def as_json_map(self) -> Dict[str, Any]:
+		"""
+		Represents the question as a JSON-ready mapping.
+
+		:returns: A mapping that is ready to be converted to JSON.
+		"""
+		return \
+			{
+				lan.value: {tec.value: self.form(lan, tec, question_mark=True) for tec in self.representations[lan]}
+				for lan in self.representations.keys()
+			}
+
 
 class SPARQLAnswer:
 	"""
@@ -143,6 +155,14 @@ class SPARQLAnswer:
 		:returns: The string representation.
 		"""
 		return 'SPARQLAnswer(...)'
+
+	def as_json_map(self) -> Dict[str, Any]:
+		"""
+		Represents the answer as a JSON-ready mapping.
+
+		:returns: A mapping that is ready to be converted to JSON.
+		"""
+		return {tec.value: self.representations[tec] for tec in self.representations.keys()}
 
 
 class QAPair:
@@ -179,6 +199,21 @@ class QAPair:
 		:returns: The string representation.
 		"""
 		return 'QAPair(id=%d, depth=%d, q=%s, a=%s)' % (self.identifier, self.depth, str(self.q), str(self.a))
+
+	def as_json_map(self) -> Dict[str, Any]:
+		"""
+		Yields the QA pair as a JSON-ready mapping.
+
+		:returns: A mapping that is ready to be converted to JSON.
+		"""
+		return \
+			{
+				'id': self.identifier,
+				'depth': self.depth,
+				'q': self.q.as_json_map(),
+				'a': self.a.as_json_map(),
+				'result': self.result
+			}
 
 
 def _language_of_key(key: str) -> Language:
@@ -224,6 +259,7 @@ def _natural_language_question_from_raw_representation(raw: JSONQAPair) -> Natur
 	"""
 	rep: Dict[Language, Dict[EntityLocatingTechnique, str]] = {}
 	for key, val in raw.items():
+		# search through the JSON keys, and map these to entries in our Python wrapper object
 		if re.search('(questionPatternModEntities)((_)[a-z]{2})?$', key):
 			_add_to_representations(rep, _language_of_key(key), EntityLocatingTechnique.MOD_PATTERN_ENTITIES, val)
 		elif re.search('(questionWithBrackets)((_)[a-z]{2})?$', key):
