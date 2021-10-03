@@ -13,7 +13,7 @@ from utility.typing import HTTPAddress
 
 from pre_processing.answer import Answer, AnswerForm
 from pre_processing.language import FormalLanguage, NaturalLanguage
-from pre_processing.question import Question, QuestionForm
+from pre_processing.question import Question, QuestionForm, StringQuestion
 from pre_processing.question_answer_pair import Metadata, RawQAPair, QAPair
 
 
@@ -91,3 +91,7 @@ class Dataset(ABC):
 			FormalLanguage: self.qa_pairs[0].a.formal_languages,
 			Metadata: self._metadata_from_raw_qa_pair(raw_qa_pair)
 		}  # we trust that all QA pairs are similarly formed
+
+	@abstractmethod
+	def questions_for_translation(self) -> Tuple[StringQuestion, ...]:
+		pass

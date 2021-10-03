@@ -8,7 +8,7 @@ import os
 import requests as req
 
 from pathlib import Path
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 from pre_processing.answer import Answer, AnswerForm, StringAnswer
 from pre_processing.language import FormalLanguage, NaturalLanguage
@@ -19,7 +19,7 @@ from pre_processing.dataset.dataset import Dataset, RawDataset
 from utility.typing import HTTPAddress
 
 
-class LCQuad(Dataset):
+class LCQuAD(Dataset):
 
 	QUESTION_KEYS: Dict[str, QuestionForm] = \
 		{
@@ -36,6 +36,13 @@ class LCQuad(Dataset):
 		(
 			'uid', 'subgraph', 'template_index', 'template', 'template_id', 'answer'
 		)
+
+	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
+		super().__init__(dataset_locations)
+		res = req.get(self._dataset_locations[1])
+		if res.status_code != 200:
+			raise RuntimeError('Response code for URL \'%s\' was not \'200: OK\'!' % (self._dataset_locations[1],))
+		self.num_test: int = len(json.loads(res.content))
 
 	@property
 	def _default_dataset_locations(self) -> Tuple[Union[Path, HTTPAddress], ...]:
@@ -68,7 +75,7 @@ class LCQuad(Dataset):
 
 	def _question_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Question:
 		forms: Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]] = {}
-		for key, form in LCQuad.QUESTION_KEYS.items():
+		for key, form in LCQuAD.QUESTION_KEYS.items():
 			str_q: StringQuestion = raw_qa_pair[key]
 			forms[form] = {}
 			forms[form][NaturalLanguage.ENGLISH] = str_q
@@ -76,7 +83,7 @@ class LCQuad(Dataset):
 
 	def _answer_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Answer:
 		forms: Dict[AnswerForm, Dict[FormalLanguage, StringAnswer]] = {}
-		for key, form in LCQuad.ANSWER_KEYS.items():
+		for key, form in LCQuAD.ANSWER_KEYS.items():
 			str_a: StringAnswer = raw_qa_pair[key]
 			forms[form] = {}
 			forms[form][FormalLanguage.SPARQL] = str_a
@@ -84,6 +91,9 @@ class LCQuad(Dataset):
 
 	def _metadata_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Metadata:
 		metadata: Metadata = Metadata({})
-		for key in LCQuad.METADATA_KEYS:
+		for key in LCQuAD.METADATA_KEYS:
 			metadata[key] = raw_qa_pair[key]
 		return metadata
+
+	def questions_for_translation(self) -> Tuple[StringQuestion, ...]:
+		return tuple(qa.q.in_form(QuestionForm.BRACKETED, NaturalLanguage.ENGLISH) for qa in self.qa_pairs)

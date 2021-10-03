@@ -1,5 +1,8 @@
-from pre_processing.dataset.lc_quad import LCQuad
+from pre_processing.language import NaturalLanguage
+from pre_processing.translation import translate_for_dataset
+from pre_processing.dataset.lc_quad import LCQuAD
 
 
 if __name__ == '__main__':
-	lcq = LCQuad()
+	lcq = LCQuAD()
+	translate_for_dataset(lcq, NaturalLanguage.DUTCH)
