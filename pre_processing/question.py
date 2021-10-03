@@ -6,7 +6,7 @@ Contains classes and methods for representing KBQA questions.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, NewType, Tuple
+from typing import Dict, NewType, Set, Tuple
 
 from pre_processing.language import NaturalLanguage
 
@@ -41,4 +41,8 @@ class Question:
 
 	@property
 	def natural_languages(self) -> Tuple[NaturalLanguage, ...]:
-		return tuple({self._forms[k].keys() for k in self.question_forms})  # first, make it unique
+		s: Set[NaturalLanguage] = set()
+		for qf in self.question_forms:
+			for nl in self._forms[qf].keys():
+				s.add(nl)
+		return tuple(s)

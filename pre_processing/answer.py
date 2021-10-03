@@ -4,7 +4,7 @@ Contains classes and methods for representing KBQA answers.
 
 
 from enum import Enum
-from typing import Dict, NewType, Tuple
+from typing import Dict, NewType, Set, Tuple
 
 from pre_processing.language import FormalLanguage
 
@@ -16,8 +16,10 @@ class AnswerForm(Enum):
 	"""
 	A way to represent an answer.
 	"""
-	NORMAL = 'normal'
-	PATTERNS = 'patterns'
+	WIKIDATA_NORMAL = 'wikidata-normal'
+	WIKIDATA_PATTERNS = 'wikidata-patterns'
+	DBPEDIA_18_NORMAL = 'dbpedia-18-normal'
+	DBPEDIA_18_PATTERNS = 'dbpedia-18-patterns'
 
 
 class Answer:
@@ -37,4 +39,8 @@ class Answer:
 
 	@property
 	def formal_languages(self) -> Tuple[FormalLanguage, ...]:
-		return tuple({self._forms[a].keys() for a in self.answer_forms})
+		s: Set[FormalLanguage] = set()
+		for af in self.answer_forms:
+			for key in self._forms[af].keys():
+				s.add(key)
+		return tuple(s)
