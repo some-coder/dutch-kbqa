@@ -5,4 +5,4 @@ from pre_processing.dataset.lc_quad import LCQuAD
 
 if __name__ == '__main__':
 	lcq = LCQuAD()
-	translate_for_dataset(lcq, NaturalLanguage.DUTCH)
+	translate_for_dataset(lcq, NaturalLanguage.DUTCH, 0, append=True)

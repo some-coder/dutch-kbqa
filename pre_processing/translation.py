@@ -10,7 +10,7 @@ import six
 from google.cloud import translate_v2 as tl
 from pathlib import Path
 
-from typing import Dict, cast
+from typing import Dict, Optional, cast
 
 from pre_processing.language import NaturalLanguage
 from pre_processing.question import StringQuestion
@@ -42,7 +42,12 @@ def translate_text(text: StringQuestion, language: NaturalLanguage) -> str:
 	return result[TRANSLATED_TEXT_KEY]
 
 
-def translate_for_dataset(dataset: Dataset, language: NaturalLanguage) -> None:
+def translate_for_dataset(
+		dataset: Dataset,
+		language: NaturalLanguage,
+		start: int,
+		stop: Optional[int] = None,
+		append: bool = False) -> None:
 	"""
 	Translates all questions present in ``dataset`` in the language ``language``.
 
@@ -50,6 +55,9 @@ def translate_for_dataset(dataset: Dataset, language: NaturalLanguage) -> None:
 
 	:param dataset: The dataset to translate for.
 	:param language: The language to translate into.
+	:param start: The starting index. Inclusive.
+	:param stop: Optional. The stopping index. Exclusive.
+	:param append: Whether to append instead of exclusively create. Defaults to ``False``.
 	"""
 	_confirm_access()
 	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(Path(os.getcwd(), KEY_FILE_LOCATION))
@@ -59,10 +67,12 @@ def translate_for_dataset(dataset: Dataset, language: NaturalLanguage) -> None:
 		os.makedirs(translation_dir)
 	except FileExistsError:
 		pass  # that's okay
-	with open(Path(translation_dir, 'translations.csv'), 'x') as handle:
+	with open(Path(translation_dir, 'translations.csv'), 'a' if append else 'x') as handle:
 		writer = csv.writer(handle)
+		stop: int = len(qs) if stop is None else stop
 		print('TRANSLATION PROGRESS')
-		for index, q in enumerate(qs[:5]):
+		for index, q in enumerate(qs[start:stop]):
+			index += start
 			translation = translate_text(q, language)
 			writer.writerow([index, translation])
-			print('\t%5d / %5d = %6.3f' % (index + 1, len(qs), ((index + 1) / len(qs)) * 1e2))
+			print('\t%5d / %5d = %6.3f' % (index + 1, (stop - start + 1), ((index + 1) / (stop - start + 1)) * 1e2))
