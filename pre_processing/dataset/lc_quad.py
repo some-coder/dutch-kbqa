@@ -5,18 +5,29 @@ A class that serves as an interface to the LC Quad 2.0 KBQA dataset.
 
 import json
 import os
+import re
 import requests as req
 
+import utility.match as um
+
+from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from pre_processing.answer import Answer, AnswerForm, StringAnswer
-from pre_processing.language import FormalLanguage, NaturalLanguage
 from pre_processing.question import Question, QuestionForm, StringQuestion
-from pre_processing.question_answer_pair import RawQAPair, Metadata
+from pre_processing.question_answer_pair import RawQAPair, Metadata, QAPair
 from pre_processing.dataset.dataset import Dataset, RawDataset
 
-from utility.typing import HTTPAddress
+from utility.language import NaturalLanguage, FormalLanguage
+from utility.typing import HTTPAddress, WikiDataSymbol
+from utility.wikidata import symbol_labels
+
+
+class QualityGroup(Enum):
+	NONE = 'none'
+	Q = 'q'
+	Q_AND_P = 'q-and-p'
 
 
 class LCQuAD(Dataset):
@@ -66,12 +77,55 @@ class LCQuAD(Dataset):
 	def _obtained_dataset(self) -> RawDataset:
 		loc = Path(self._dataset_save_file())
 		if self._dataset_is_already_stored():
-			print('Dataset already stored! Retrieving it...')
+			print('[%s] Dataset already stored! Retrieving it...' % (self.__class__.__name__,))
 			with open(loc, 'r') as handle:
 				return json.load(handle)
 		else:
 			self._obtain_dataset()
 			return self._obtained_dataset()  # recursive call, but should be OK
+
+	@staticmethod
+	def _sparql_wikidata_symbols(sparql: str) -> Tuple[WikiDataSymbol, ...]:
+		symbols: Tuple[str, ...] = tuple()
+		for match in re.finditer('(wd)(t)?(:)[QP][0-9]+', sparql):
+			symbols += re.sub('(wd)(t)?(:)', '', match.group()),  # remove the URL prefix
+		return tuple(WikiDataSymbol(s) for s in set(symbols))  # make unique
+
+	@staticmethod
+	def _matched_sparql_wikidata_symbol(string: str, sym: WikiDataSymbol) -> Optional[str]:
+		"""
+		Finds the lexeme in ``string`` that matches one of the WikiData symbol's labels.
+
+		:param string: The string to find a mention of ``sym`` in.
+		:param sym: The WikiData symbol to find a mention for.
+		:return: The mention.
+		"""
+		lowered_string = string.lower()
+		for label in symbol_labels(sym, NaturalLanguage.ENGLISH, wait=True):
+			m = um.match(label.lower(), lowered_string, threshold=8e-1)
+			if m is None:
+				continue  # this label doesn't fit; try the next one
+			return string[m[0]:m[1]]
+		return None
+
+	@staticmethod
+	def _bracket_resolver_from_qa_pair(qa_pair: QAPair) -> Tuple[Dict[str, WikiDataSymbol], QualityGroup]:
+		q: str = qa_pair.q.in_form(QuestionForm.NORMAL, NaturalLanguage.ENGLISH)
+		if q is None:
+			return {}, QualityGroup.NONE  # question does not exist
+		s: str = qa_pair.a.in_form(AnswerForm.WIKIDATA_NORMAL, FormalLanguage.SPARQL)
+		d: Dict[str, WikiDataSymbol] = {}
+		ws = LCQuAD._sparql_wikidata_symbols(s)
+		all_ps_linked: bool = True
+		for wikidata_symbol in ws:
+			match = LCQuAD._matched_sparql_wikidata_symbol(q, wikidata_symbol)
+			if match is not None:
+				d[match] = wikidata_symbol
+			elif wikidata_symbol[0] == 'Q':
+				return {}, QualityGroup.NONE
+			else:
+				all_ps_linked = False
+		return d, QualityGroup.Q_AND_P if all_ps_linked else QualityGroup.Q
 
 	def _question_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Question:
 		forms: Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]] = {}
@@ -79,7 +133,8 @@ class LCQuAD(Dataset):
 			str_q: StringQuestion = raw_qa_pair[key]
 			forms[form] = {}
 			forms[form][NaturalLanguage.ENGLISH] = str_q
-		return Question(forms)
+		q = Question(forms)
+		return q
 
 	def _answer_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Answer:
 		forms: Dict[AnswerForm, Dict[FormalLanguage, StringAnswer]] = {}
@@ -97,3 +152,19 @@ class LCQuAD(Dataset):
 
 	def questions_for_translation(self) -> Tuple[StringQuestion, ...]:
 		return tuple(qa.q.in_form(QuestionForm.BRACKETED, NaturalLanguage.ENGLISH) for qa in self.qa_pairs)
+
+	def question_addenda(self, index_range: Tuple[int, int]) -> Dict[int, Any]:
+		d: Dict[int, Any] = {}
+		print('DERIVING ADDENDA')
+		for index in range(*index_range):
+			print(
+				'\t%3d / %3d (%6.2f%%)' %
+				(
+					index + 1 - index_range[0],
+					index_range[1] - index_range[0],
+					((index + 1 - index_range[0]) / (index_range[1] - index_range[0])) * 1e2
+				))
+			qa_pair: QAPair = self.qa_pairs[index]
+			tup = LCQuAD._bracket_resolver_from_qa_pair(qa_pair)
+			d[qa_pair.metadata['uid']] = {'links': tup[0], 'quality': tup[1].value}
+		return d

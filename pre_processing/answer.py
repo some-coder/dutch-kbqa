@@ -6,7 +6,7 @@ Contains classes and methods for representing KBQA answers.
 from enum import Enum
 from typing import Dict, NewType, Set, Tuple
 
-from pre_processing.language import FormalLanguage
+from utility.language import FormalLanguage
 
 
 StringAnswer = NewType('StringAnswer', str)

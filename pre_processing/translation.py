@@ -12,9 +12,10 @@ from pathlib import Path
 
 from typing import Dict, Optional, cast
 
-from pre_processing.language import NaturalLanguage
 from pre_processing.question import StringQuestion
 from pre_processing.dataset.dataset import Dataset
+
+from utility.language import NaturalLanguage
 
 
 ACCESS_CONFIRM_STRING = 'Truly access Google Cloud Translate? This may cost money! (y/n) '

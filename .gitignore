@@ -1,5 +1,6 @@
 # JSON
 *.json
+!resources/datasets/lcquad/addenda.json
 
 
 # JetBrains caches

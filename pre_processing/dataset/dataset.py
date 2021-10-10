@@ -12,9 +12,10 @@ from typing import Dict, NewType, Optional, Tuple, Type, Union
 from utility.typing import HTTPAddress
 
 from pre_processing.answer import Answer, AnswerForm
-from pre_processing.language import FormalLanguage, NaturalLanguage
 from pre_processing.question import Question, QuestionForm, StringQuestion
 from pre_processing.question_answer_pair import Metadata, RawQAPair, QAPair
+
+from utility.language import NaturalLanguage, FormalLanguage
 
 
 Domain = NewType(
@@ -36,7 +37,9 @@ class Dataset(ABC):
 
 	DATASET_SAVE_DIRECTORY = Path('resources', 'datasets')
 
-	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
+	def __init__(
+			self,
+			dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
 		if dataset_locations is None:
 			self._dataset_locations = self._default_dataset_locations
 		else:
