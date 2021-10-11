@@ -14,12 +14,17 @@ from utility.typing import HTTPAddress, WikiDataSymbol
 
 WIKIDATA_URL = HTTPAddress('https://query.wikidata.org/sparql')
 WIKIDATA_QUERY_WAIT = float(60 // 21)
+WIKIDATA_ERROR_WAIT = 5
 
 
 def wikidata_query(query: str, variables: Tuple[str, ...], wait: bool = False) -> Dict[str, Tuple[str, ...]]:
 	req = rq.get(WIKIDATA_URL, params={'format': 'json', 'query': query})
-	if not req.ok:
+	if not req.ok and req.status_code != 429:
 		raise RuntimeError('[query_wikidata] Encountered a problem!\nQuery:\n%s\nCode: %d.' % (query, req.status_code))
+	while req.status_code == 429:
+		print('[query_wikidata] Encountered a \'429 - Too Many Requests\' error. Retrying in 5 seconds...')
+		time.sleep(WIKIDATA_ERROR_WAIT)
+		req = rq.get(WIKIDATA_URL, params={'format': 'json', 'query': query})
 	d: Dict[str, Tuple[str, ...]] = {variable: tuple() for variable in variables}
 	for bind in req.json()['results']['bindings']:
 		for variable in variables:

@@ -1,7 +1,8 @@
 import json
+import numpy as np
 import os
 
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from pre_processing.dataset.lc_quad import LCQuAD
 
@@ -11,13 +12,17 @@ ADDENDA_PATH = 'resources/datasets/lcquad/addenda.json'
 
 if __name__ == '__main__':
 	lcq = LCQuAD()
-	add = lcq.question_addenda((15, 160))
-	print(add)
 	previous_add: Dict[int, Any] = {}
 	if os.path.exists(ADDENDA_PATH):
 		with open(ADDENDA_PATH, 'r') as handle:
 			previous_add = json.load(handle)
-	with open(ADDENDA_PATH, 'w') as handle:
-		add.update(previous_add)
-		json.dump(add, handle)
-
+	index_range = (6270, 6720)
+	ran: Tuple[int, ...] = tuple(np.arange(*index_range, 50))
+	for i in range(len(ran) - 1):
+		start: int = ran[i]
+		end: int = ran[i + 1]
+		print('RANGE (%4d, %4d)' % (start, end))
+		add = lcq.question_addenda((start, end))
+		with open(ADDENDA_PATH, 'w') as handle:
+			previous_add.update(add)
+			json.dump(previous_add, handle)
