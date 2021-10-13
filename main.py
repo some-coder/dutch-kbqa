@@ -16,7 +16,7 @@ if __name__ == '__main__':
 	if os.path.exists(ADDENDA_PATH):
 		with open(ADDENDA_PATH, 'r') as handle:
 			previous_add = json.load(handle)
-	index_range = (9170, 11220)
+	index_range = (14420, 15720)
 	ran: Tuple[int, ...] = tuple(np.arange(*index_range, 50))
 	for i in range(len(ran) - 1):
 		start: int = ran[i]
