@@ -21,8 +21,16 @@ class QuestionForm(Enum):
 	"""
 	NORMAL = 'normal'
 	BRACKETED = 'bracketed'
+	BRACKETED_ENTITIES = 'bracketed-entities'
+	BRACKETED_ENTITIES_RELATIONS = 'bracketed-entities-relations'
 	PATTERNS = 'patterns'
+	PATTERNS_ENTITIES = 'patterns-entities'
+	PATTERNS_ENTITIES_RELATIONS = 'patterns-entities-relations'
 	PARAPHRASED = 'paraphrased'
+
+
+ENTITY_BRACKETS: Tuple[str, str] = ('{', '}')
+RELATION_BRACKETS: Tuple[str, str] = ('(', ')')
 
 
 class Question:

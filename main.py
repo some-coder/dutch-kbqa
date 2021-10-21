@@ -2,6 +2,9 @@ import json
 import numpy as np
 import os
 
+from utility.language import NaturalLanguage
+from pre_processing.question import QuestionForm
+
 from typing import Any, Dict, Tuple
 
 from pre_processing.dataset.lc_quad import LCQuAD
@@ -10,7 +13,7 @@ from pre_processing.dataset.lc_quad import LCQuAD
 ADDENDA_PATH = 'resources/datasets/lcquad/addenda.json'
 
 
-if __name__ == '__main__':
+def create_addenda():
 	lcq = LCQuAD()
 	previous_add: Dict[int, Any] = {}
 	if os.path.exists(ADDENDA_PATH):
@@ -26,3 +29,9 @@ if __name__ == '__main__':
 		with open(ADDENDA_PATH, 'w') as handle:
 			previous_add.update(add)
 			json.dump(previous_add, handle)
+
+
+if __name__ == '__main__':
+	lc_q = LCQuAD()
+	print(lc_q.qa_pairs[43].q.in_form(QuestionForm.BRACKETED_ENTITIES, NaturalLanguage.ENGLISH))
+	print(lc_q.qa_pairs[43].q.in_form(QuestionForm.BRACKETED_ENTITIES_RELATIONS, NaturalLanguage.ENGLISH))

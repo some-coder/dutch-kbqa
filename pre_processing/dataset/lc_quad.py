@@ -15,13 +15,13 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 from pre_processing.answer import Answer, AnswerForm, StringAnswer
-from pre_processing.question import Question, QuestionForm, StringQuestion
+from pre_processing.question import ENTITY_BRACKETS, RELATION_BRACKETS, Question, QuestionForm, StringQuestion
 from pre_processing.question_answer_pair import RawQAPair, Metadata, QAPair
 from pre_processing.dataset.dataset import Dataset, RawDataset
 
 from utility.language import NaturalLanguage, FormalLanguage
 from utility.typing import HTTPAddress, WikiDataSymbol
-from utility.wikidata import symbol_labels
+from utility.wikidata import WIKIDATA_ENTITY, WIKIDATA_RELATION, symbol_labels
 
 
 class QualityGroup(Enum):
@@ -49,6 +49,7 @@ class LCQuAD(Dataset):
 		)
 
 	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
+		self._addenda: Optional[Dict[int, Dict[str, Any]]] = None
 		super().__init__(dataset_locations)
 		res = req.get(self._dataset_locations[1])
 		if res.status_code != 200:
@@ -60,6 +61,10 @@ class LCQuAD(Dataset):
 		return \
 			HTTPAddress('https://raw.githubusercontent.com/AskNowQA/LC-QuAD2.0/master/dataset/train.json'), \
 			HTTPAddress('https://raw.githubusercontent.com/AskNowQA/LC-QuAD2.0/master/dataset/test.json')
+
+	@property
+	def _default_addenda_location(self) -> Path:
+		return Path('resources', 'datasets', 'lcquad', 'addenda.json')
 
 	def _obtain_dataset(self) -> None:
 		joined: RawDataset = RawDataset(tuple())
@@ -76,6 +81,10 @@ class LCQuAD(Dataset):
 
 	def _obtained_dataset(self) -> RawDataset:
 		loc = Path(self._dataset_save_file())
+		if os.path.exists(self._default_addenda_location):
+			print('[%s] Addenda file found! Retrieving it...' % (self.__class__.__name__,))
+			with open(self._default_addenda_location, 'r') as handle:
+				self._addenda = {int(kv[0]): kv[1] for kv in json.load(handle).items()}
 		if self._dataset_is_already_stored():
 			print('[%s] Dataset already stored! Retrieving it...' % (self.__class__.__name__,))
 			with open(loc, 'r') as handle:
@@ -127,12 +136,83 @@ class LCQuAD(Dataset):
 				all_ps_linked = False
 		return d, QualityGroup.Q_AND_P if all_ps_linked else QualityGroup.Q
 
+	@staticmethod
+	def _question_addenda_replacement(
+			string: str,
+			key: QuestionForm,
+			typ: Union[WIKIDATA_ENTITY, WIKIDATA_RELATION],
+			i: int) -> str:
+		if key in (QuestionForm.BRACKETED_ENTITIES, QuestionForm.BRACKETED_ENTITIES_RELATIONS):
+			if typ == WIKIDATA_ENTITY or \
+					(typ == WIKIDATA_RELATION and key == QuestionForm.BRACKETED_ENTITIES_RELATIONS):
+				brk: Tuple[str, str] = ENTITY_BRACKETS if typ == WIKIDATA_ENTITY else RELATION_BRACKETS
+				return '%s%s%s' % (brk[0], string, brk[1])
+			else:
+				return '%s' % (string,)  # relations in bracket-entity matching: leave it alone
+		elif key in (QuestionForm.PATTERNS_ENTITIES, QuestionForm.PATTERNS_ENTITIES_RELATIONS):
+			if typ == WIKIDATA_ENTITY or (typ == WIKIDATA_RELATION and key == QuestionForm.PATTERNS_ENTITIES_RELATIONS):
+				return '%s%d' % (typ, i)
+			else:
+				return '%s' % (string,)  # relations in pattern-entity matching: leave it alone
+		else:
+			raise ValueError('Unrecognised question form: \'%s\'.' % (key.value,))
+
+	@staticmethod
+	def _massaged_addenda_string(raw: str) -> str:
+		rep = raw.replace('\\', '')
+		rep = re.sub('(of )', '', rep)
+		rep = rep.replace('%s' % (ENTITY_BRACKETS[0],), '\\%s' % (ENTITY_BRACKETS[0]))
+		rep = rep.replace('%s' % (ENTITY_BRACKETS[1],), '\\%s' % (ENTITY_BRACKETS[1]))
+		rep = rep.replace('%s' % (RELATION_BRACKETS[0],), '\\%s' % (RELATION_BRACKETS[0]))
+		rep = rep.replace('%s' % (RELATION_BRACKETS[1],), '\\%s' % (RELATION_BRACKETS[1]))
+		rep = rep.replace('+', '\\+')
+		rep = rep.replace('[', '\\[').replace(']', '\\]')
+		return rep
+
+	def _question_addenda_from_raw_qa_pair(
+			self,
+			raw_qa_pair: RawQAPair) -> Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]]:
+		add: Dict[str, Any] = self._addenda[int(raw_qa_pair['uid'])]
+		d: Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]] = {}
+		keys: Tuple[QuestionForm, ...] = tuple()
+		if add['quality'] in (QualityGroup.Q.value, QualityGroup.Q_AND_P.value):
+			keys += (QuestionForm.BRACKETED_ENTITIES, QuestionForm.PATTERNS_ENTITIES)
+		if add['quality'] == QualityGroup.Q_AND_P.value:
+			keys += (QuestionForm.BRACKETED_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES_RELATIONS)
+		for key in keys:
+			q_d_counts: Tuple[int, int] = (0, 0)
+			if key not in d:
+				d[key] = {}
+			# start with the original question
+			d[key][NaturalLanguage.ENGLISH] = raw_qa_pair['question'].replace('\\', '')
+			for lnk_key, lnk_val in add['links'].items():
+				msg: str = LCQuAD._massaged_addenda_string(lnk_key)
+				if lnk_val[0] == WIKIDATA_ENTITY:
+					d[key][NaturalLanguage.ENGLISH] = StringQuestion(re.sub(
+						'(%s)' % (msg,),
+						LCQuAD._question_addenda_replacement(
+							msg, key, WIKIDATA_ENTITY, q_d_counts[0]).replace('\\', ''),
+						d[key][NaturalLanguage.ENGLISH]))
+					q_d_counts = (q_d_counts[0] + 1, q_d_counts[1])
+				elif lnk_val[0] == WIKIDATA_RELATION:
+					d[key][NaturalLanguage.ENGLISH] = StringQuestion(re.sub(
+						'(%s)' % (msg,),
+						LCQuAD._question_addenda_replacement(
+							msg, key, WIKIDATA_RELATION, q_d_counts[1]).replace('\\', ''),
+						d[key][NaturalLanguage.ENGLISH]
+					))
+					q_d_counts = (q_d_counts[0], q_d_counts[1] + 1)
+		return d
+
 	def _question_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Question:
 		forms: Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]] = {}
 		for key, form in LCQuAD.QUESTION_KEYS.items():
 			str_q: StringQuestion = raw_qa_pair[key]
 			forms[form] = {}
 			forms[form][NaturalLanguage.ENGLISH] = str_q
+		if self._addenda is not None and int(raw_qa_pair['uid']) in self._addenda.keys():
+			# retrieve additional addenda information, as it's available
+			forms.update(self._question_addenda_from_raw_qa_pair(raw_qa_pair))
 		q = Question(forms)
 		return q
 

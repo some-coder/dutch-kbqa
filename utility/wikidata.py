@@ -18,6 +18,10 @@ WIKIDATA_TOO_MANY_REQUESTS_WAIT = 5
 CONNECTION_DROPPED_WAIT = 30
 
 
+WIKIDATA_ENTITY: str = 'Q'
+WIKIDATA_RELATION: str = 'P'
+
+
 def wikidata_query(query: str, variables: Tuple[str, ...], wait: bool = False) -> Dict[str, Tuple[str, ...]]:
 	connect_succeeded: bool = False
 	while not connect_succeeded:
