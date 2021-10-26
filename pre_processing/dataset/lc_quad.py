@@ -2,7 +2,11 @@
 A class that serves as an interface to the LC Quad 2.0 KBQA dataset.
 """
 
+
+from __future__ import annotations
+
 import json
+import numpy as np
 import os
 import re
 import requests as req
@@ -12,17 +16,22 @@ import utility.match as um
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Type, TypedDict, Union, cast
+from typing import Any, Callable, Dict, Optional, Tuple, Type, TypedDict, Union, cast
 
 from pre_processing.answer import Answer, AnswerForm, StringAnswer, AnswerFormMap, AnswerForms
+from pre_processing.translation import _confirm_access, _configure_credentials, translate_text
 from pre_processing.question import ENTITY_BRACKETS, RELATION_BRACKETS, Question, QuestionForm, StringQuestion, \
 	QuestionFormMap, QuestionForms
-from pre_processing.question_answer_pair import RawQAPair, Metadata, QAPair
+from pre_processing.question_answer_pair import RawQAPair, Metadata, QuestionKey, AnswerKey, MetadataKey, QAPair
 from pre_processing.dataset.dataset import Dataset, RawDataset, bracketed_forms, patterned_forms
 
 from utility.language import NaturalLanguage, FormalLanguage
 from utility.typing import HTTPAddress, WikiDataSymbol
 from utility.wikidata import WikiDataType, symbol_labels
+
+
+ADDENDA_PATH = Path('resources/datasets/lcquad/addenda.json')
+TRANSLATIONS_PATH = Path('resources/datasets/lcquad/translations.json')
 
 
 class QualityGroup(Enum):
@@ -43,23 +52,46 @@ class ReplaceInstruction:
 	use_reg_exp: bool  # whether to use RegExp (`True`) or plain `replace` (`False`) for replacement
 
 
+class LCQuADTranslation(TypedDict):
+	language: NaturalLanguage  # the language of the translation
+	sentence: str  # the translated entity- or entity-relation-pattern sentence
+	wd_symbols: Dict[WikiDataSymbol, str]  # a mapping from WikiData symbols (Q..., P...) to translated lexemes
+
+
+class LCQuADTranslationRaw(TypedDict):  # as ``LCQuADTranslation``, but serializable
+	language: str
+	sentence: str
+	wd_symbols: Dict[WikiDataSymbol, str]
+
+
 Addenda = Dict[int, AddendaEntry]
 
 
 class LCQuAD(Dataset):
 
-	QUESTION_KEYS: Dict[str, QuestionForm] = \
+	class QuestionKeysType(TypedDict):
+		NNQT_question: QuestionForm
+		question: QuestionForm
+		paraphrased_question: QuestionForm
+
+	class AnswerKeysType(TypedDict):
+		sparql_wikidata: AnswerForm
+		sparql_dbpedia18: AnswerForm
+
+	QUESTION_KEYS: QuestionKeysType = \
 		{
 			'NNQT_question': QuestionForm.BRACKETED,
 			'question': QuestionForm.NORMAL,
 			'paraphrased_question': QuestionForm.PARAPHRASED
 		}
-	ANSWER_KEYS: Dict[str, AnswerForm] = \
+
+	ANSWER_KEYS: LCQuAD.AnswerKeysType = \
 		{
 			'sparql_wikidata': AnswerForm.WIKIDATA_NORMAL,
 			'sparql_dbpedia18': AnswerForm.DBPEDIA_18_NORMAL
 		}
-	METADATA_KEYS: Tuple[str, ...] = \
+
+	METADATA_KEYS: Tuple[MetadataKey, ...] = \
 		(
 			'uid', 'subgraph', 'template_index', 'template', 'template_id', 'answer'
 		)
@@ -69,6 +101,7 @@ class LCQuAD(Dataset):
 		(
 			ReplaceInstruction('\\', '', False),
 		)
+
 	QUESTION_ADDENDA_REPLACE_INSTRUCTIONS: Tuple[ReplaceInstruction, ...] = \
 		(
 			ReplaceInstruction('\\', '', False),
@@ -78,6 +111,7 @@ class LCQuAD(Dataset):
 			ReplaceInstruction('%s' % (sym,), '\\%s' % (sym,), False) for sym in
 			ENTITY_BRACKETS + RELATION_BRACKETS + ('+', '[', ']')
 		)
+
 	ANSWER_NORMAL_REPLACE_INSTRUCTIONS: Tuple[ReplaceInstruction, ...] = \
 		(
 			ReplaceInstruction('(wd)(t)?(:)', '', True),
@@ -85,6 +119,7 @@ class LCQuAD(Dataset):
 
 	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
 		self._addenda: Optional[Addenda] = None
+		self._wd_symbols_to_q_p: Dict[int, Dict[WikiDataSymbol, str]] = {}
 		super().__init__(dataset_locations)
 		res = req.get(self._dataset_locations[1])
 		if res.status_code != 200:
@@ -172,6 +207,26 @@ class LCQuAD(Dataset):
 		return d, QualityGroup.Q_AND_P if all_ps_linked else QualityGroup.Q
 
 	@staticmethod
+	def _serialisation_ready_bracket_resolver(qa_pair: QAPair) -> AddendaEntry:
+		br = LCQuAD._bracket_resolver_from_qa_pair(qa_pair)
+		return {'links': br[0], 'quality': br[1].value}
+
+	def _qa_pair_translation(self, qa_pair: QAPair, language: NaturalLanguage) -> LCQuADTranslationRaw:
+		for f in (QuestionForm.PATTERNS_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES, QuestionForm.NORMAL):
+			try:
+				sen = qa_pair.q.in_form(f, NaturalLanguage.ENGLISH)
+				translated = translate_text(sen, language)
+				link_translations: Dict[WikiDataSymbol, str] = {}
+				uid: int = int(qa_pair.metadata['uid'])
+				for link_key, link_val in self._addenda[uid]['links'].items():
+					link_translations[WikiDataSymbol(self._wd_symbols_to_q_p[uid][link_val])] = translate_text(link_key, language)
+				return {'language': language.value, 'sentence': translated, 'wd_symbols': link_translations}
+			except KeyError:
+				continue  # try another form
+		raise ValueError(
+			'[_qa_pair_translation] Question %d does not have any suitable form!' % (int(qa_pair.metadata['uid']),))
+
+	@staticmethod
 	def _should_replace_with_addenda(
 			q_or_a: Union[Type[Question], Type[Answer]],
 			form: Union[QuestionForm, AnswerForm],
@@ -221,7 +276,10 @@ class LCQuAD(Dataset):
 	def _normal_form_with_replacements(
 			raw: RawQAPair,
 			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[StringQuestion, StringAnswer]:
-		s = raw['question' if q_or_a == Question else 'sparql_wikidata']
+		if q_or_a == Question:
+			s = raw['question']
+		else:
+			s = raw['sparql_wikidata']
 		rep_ins: Tuple[ReplaceInstruction, ...] = \
 			LCQuAD.QUESTION_NORMAL_REPLACE_INSTRUCTIONS if q_or_a == Question else LCQuAD.ANSWER_NORMAL_REPLACE_INSTRUCTIONS
 		for ins in rep_ins:
@@ -238,6 +296,16 @@ class LCQuAD(Dataset):
 			form in (AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES) and
 			link_item[1][0] == WikiDataType.RELATION.value
 		)
+
+	def _update_wd_symbols_to_q_p(
+			self,
+			uid: int,
+			wd_symbol: WikiDataSymbol,
+			count: int) -> None:
+		letter: str = wd_symbol[0]  # get the Q- or P-symbol
+		if uid not in self._wd_symbols_to_q_p.keys():
+			self._wd_symbols_to_q_p[uid] = {}
+		self._wd_symbols_to_q_p[uid][wd_symbol] = '%s%d' % (letter, count)
 
 	def _question_or_answer_addenda(
 			self,
@@ -273,8 +341,9 @@ class LCQuAD(Dataset):
 				substituted = d[key][sub_key]  # simply the normal question or answer, in case of no substitution
 				if LCQuAD._should_substitute((link_key, link_val), q_or_a, key):
 					substituted = re.sub('(%s)' % (massaged if q_or_a == Question else link_val,), replacement, substituted)
+					self._update_wd_symbols_to_q_p(int(raw['uid']), link_val, q_p_counts[wd_type])
+					q_p_counts[wd_type] += 1  # only increment Q- and P-counts when we actually substitute
 				d[key][sub_key] = StringQuestion(substituted) if q_or_a == Question else StringAnswer(substituted)
-				q_p_counts[wd_type] += 1
 		return d
 
 	def _question_or_answer_from_raw_qa_pair(
@@ -282,9 +351,9 @@ class LCQuAD(Dataset):
 			raw_qa_pair: RawQAPair,
 			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[Question, Answer]:
 		forms: Union[QuestionFormMap, AnswerFormMap] = {}
-		key_items: Union[Dict[str, QuestionForm], Dict[str, AnswerForm]] = \
-			LCQuAD.QUESTION_KEYS if q_or_a == Question else LCQuAD.ANSWER_KEYS
+		key_items = LCQuAD.QUESTION_KEYS if q_or_a == Question else LCQuAD.ANSWER_KEYS
 		for key, form in key_items.items():
+			key: Union[QuestionKey, AnswerKey]  # guaranteed
 			s: Union[StringQuestion, StringAnswer] = \
 				StringQuestion(raw_qa_pair[key]) if q_or_a == Question else StringAnswer(raw_qa_pair[key])
 			forms[form] = {NaturalLanguage.ENGLISH: s} if q_or_a == Question else {FormalLanguage.SPARQL: s}
@@ -300,26 +369,154 @@ class LCQuAD(Dataset):
 		return self._question_or_answer_from_raw_qa_pair(raw_qa_pair, Answer)
 
 	def _metadata_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Metadata:
-		metadata: Metadata = Metadata({})
-		for key in LCQuAD.METADATA_KEYS:
-			metadata[key] = raw_qa_pair[key]
-		return metadata
+		return {key: raw_qa_pair[key] for key in LCQuAD.METADATA_KEYS}
 
 	def questions_for_translation(self) -> Tuple[StringQuestion, ...]:
+		"""
+		Deprecated. Yields the questions to translate.
+
+		:return: The questions for use in translation.
+		"""
 		return tuple(qa.q.in_form(QuestionForm.BRACKETED, NaturalLanguage.ENGLISH) for qa in self.qa_pairs)
 
-	def question_addenda(self, index_range: Tuple[int, int]) -> Dict[int, Any]:
+	def _computed_per_qa_pair(
+			self,
+			lc_quad_f: Callable,
+			index_range: Tuple[int, int],
+			extra_args: Optional[Dict[str, Any]] = None,
+			update_progress: bool = True) -> Dict[int, Any]:
+		"""
+		Computes the function ``lc_quad_f`` per QA pair in the interval ``index_range``.
+
+		:param lc_quad_f: The function to apply to all QA pairs in the index range.
+		:param index_range: The range to select QA pairs in. Inclusive, exclusive.
+		:param extra_args: Optional. Any extra arguments to supply to ``lc_quad_f``, besides the QA pair.
+		:param update_progress: Optional. Whether to keep informed about progress. Defaults to ``True``.
+		:return: A mapping from QA pair UIDs to ``lc_quad_f`` outputs. The mapping may be empty.
+		"""
 		d: Dict[int, Any] = {}
-		print('DERIVING ADDENDA')
+		if update_progress:
+			print('Computing method output per question-answer pair...')
 		for index in range(*index_range):
-			print(
-				'\t%3d / %3d (%6.2f%%)' %
-				(
-					index + 1 - index_range[0],
-					index_range[1] - index_range[0],
-					((index + 1 - index_range[0]) / (index_range[1] - index_range[0])) * 1e2
-				))
+			if update_progress:
+				print(
+					'\t%3d / %3d (%6.2f%%)' %
+					(
+						index + 1 - index_range[0],
+						index_range[1] - index_range[0],
+						((index + 1 - index_range[0]) / (index_range[1] - index_range[0])) * 1e2
+					))
 			qa_pair: QAPair = self.qa_pairs[index]
-			tup = LCQuAD._bracket_resolver_from_qa_pair(qa_pair)
-			d[qa_pair.metadata['uid']] = {'links': tup[0], 'quality': tup[1].value}
+			d[qa_pair.metadata['uid']] = lc_quad_f(self, qa_pair, **extra_args)
 		return d
+
+	def question_addenda(
+			self,
+			index_range: Tuple[int, int],
+			update_progress: bool = True) -> Dict[int, AddendaEntry]:
+		return self._computed_per_qa_pair(LCQuAD._bracket_resolver_from_qa_pair, index_range, {}, update_progress)
+
+	def question_translations(
+			self,
+			language: NaturalLanguage,
+			index_range: Tuple[int, int],
+			update_progress: bool = True) -> Dict[int, LCQuADTranslation]:
+		return self._computed_per_qa_pair(
+			LCQuAD._qa_pair_translation,
+			index_range,
+			{
+				'language': language
+			},
+			update_progress
+		)
+
+
+def _create_lc_quad_qa_pair_based_file(
+		f: Callable,
+		args: Dict[str, Any],
+		path: Path,
+		qa_pair_range: Optional[Tuple[int, int]] = None,
+		update_progress: bool = True) -> None:
+	lcq = LCQuAD()
+	print('CREATED THE DATASET')
+	if 'self' not in args.keys():
+		args['self'] = lcq
+	qa_ran: Tuple[int, int] = (0, len(lcq.qa_pairs)) if qa_pair_range is None else qa_pair_range
+	previous: Dict[Any, Any] = {}
+	if os.path.exists(path):
+		with open(path, 'r') as handle:
+			previous = json.load(handle)
+	ran: Tuple[int, ...] = tuple(np.arange(*qa_ran))
+	print('RANGE:')
+	print(ran)
+	for i in range(len(ran) - 1):
+		print('(%d)' % (i,))
+		start: int = ran[i]
+		end: int = ran[i + 1]
+		if update_progress:
+			print('QA PAIRS FROM %4d TO %4d' % (start, end))
+		current = f(**args)
+		with open(path, 'w') as handle:
+			previous.update(current)
+			json.dump(previous, handle)  # save the JSON to disk
+
+
+def create_lc_quad_addenda(qa_pair_range: Tuple[int, int], update_progress: bool = True) -> None:
+	"""
+	Generates addenda for the LC-QuAD 2.0 dataset.
+
+	An 'Addendum' to a question-answer pair is a mapping between lexemes and WikiData Q- or P-values.
+	These links can later be used by the LC-QuAD 2.0 dataset Python class to automatically generate
+	some extra representations of the QA pair that were not available in the original pair, such
+	as an entity-and-relation-bracketed or -masked representation.
+
+	The addenda are saved to disk; the LC-QuAD 2.0 dataset Python class, once instantiated, will know
+	where to look for this file.
+
+	:param qa_pair_range: The indices of the QA pairs to create addenda for. Inclusive, exclusive.
+	:param update_progress: Whether to notify the user of progress. Defaults to ``True``.
+	"""
+	_create_lc_quad_qa_pair_based_file(
+		LCQuAD.question_addenda,
+		{
+			'index_range': qa_pair_range,
+			'update_progress': update_progress
+		},
+		ADDENDA_PATH,
+		qa_pair_range,
+		update_progress
+	)
+
+
+def create_lc_quad_translations(
+		language: NaturalLanguage,
+		qa_pair_range: Tuple[int, int],
+		update_progress: bool = True) -> None:
+	"""
+	Generates translations for the LC-QuAD 2.0 dataset.
+
+	The translations are saved to disk. The next time an LC-QuAD 2.0 dataset Python class is instantiated,
+	you can explicitly request said instantiation to load in the translations via a special method.
+
+	In order to translate a QA pair, this method requires said pair to possess either an entity-pattern
+	or an entity-relation-pattern representation. If this is not the case, the pair is silently skipped.
+
+	TODO: Define the translation loading method in the ``LCQuAD`` class.
+
+	:param language: The language to make translations for.
+	:param qa_pair_range: The indices of the QA pairs to create translations for. Inclusive, exclusive.
+	:param update_progress: Whether to notify the user of progress. Defaults to ``True``.
+	"""
+	_confirm_access()  # do not unnecessarily translate via Google's API
+	_configure_credentials()
+	_create_lc_quad_qa_pair_based_file(
+		LCQuAD.question_translations,
+		{
+			'language': language,
+			'index_range': qa_pair_range,
+			'update_progress': update_progress
+		},
+		TRANSLATIONS_PATH,
+		qa_pair_range,
+		update_progress
+	)

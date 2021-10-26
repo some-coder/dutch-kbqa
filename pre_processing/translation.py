@@ -12,12 +12,12 @@ from pathlib import Path
 
 from typing import Dict, Optional, cast
 
-from pre_processing.question import StringQuestion
 from pre_processing.dataset.dataset import Dataset
 
 from utility.language import NaturalLanguage
 
 
+GOOGLE_APPLICATION_CREDENTIALS = 'GOOGLE_APPLICATION_CREDENTIALS'
 ACCESS_CONFIRM_STRING = 'Truly access Google Cloud Translate? This may cost money! (y/n) '
 KEY_FILE_LOCATION = Path('resources', 'google-cloud-key.json')
 TRANSLATED_TEXT_KEY = 'translatedText'
@@ -33,7 +33,11 @@ def _confirm_access() -> None:
 		exit(0)
 
 
-def translate_text(text: StringQuestion, language: NaturalLanguage) -> str:
+def _configure_credentials() -> None:
+	os.environ[GOOGLE_APPLICATION_CREDENTIALS] = str(Path(os.getcwd(), KEY_FILE_LOCATION))
+
+
+def translate_text(text: str, language: NaturalLanguage) -> str:
 	client = tl.Client()
 	if isinstance(text, six.binary_type):
 		# convert the text to UTF-8
@@ -61,7 +65,7 @@ def translate_for_dataset(
 	:param append: Whether to append instead of exclusively create. Defaults to ``False``.
 	"""
 	_confirm_access()
-	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(Path(os.getcwd(), KEY_FILE_LOCATION))
+	_configure_credentials()
 	translation_dir = Path(TRANSLATIONS_DIRECTORY, dataset.__class__.__name__.lower())
 	qs = dataset.questions_for_translation()
 	try:
