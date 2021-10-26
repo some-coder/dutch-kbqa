@@ -33,5 +33,13 @@ def create_addenda():
 
 if __name__ == '__main__':
 	lc_q = LCQuAD()
-	print(lc_q.qa_pairs[43].q.in_form(QuestionForm.BRACKETED_ENTITIES, NaturalLanguage.ENGLISH))
-	print(lc_q.qa_pairs[43].q.in_form(QuestionForm.BRACKETED_ENTITIES_RELATIONS, NaturalLanguage.ENGLISH))
+	first_qa = lc_q.qa_pairs[43]
+	print('Question forms:')
+	for qf in first_qa.q.question_forms:
+		for nl in first_qa.q.natural_languages:
+			print('\t(%s, %s) %s' % (qf.value, nl.value, first_qa.q.in_form(qf, nl)))
+	print('\nAnswer forms:')
+	for af in first_qa.a.answer_forms:
+		for fl in first_qa.a.formal_languages:
+			print('\t(%s, %s) %s' % (af.value, fl.value, first_qa.a.in_form(af, fl)))
+

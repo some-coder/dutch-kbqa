@@ -18,8 +18,16 @@ class AnswerForm(Enum):
 	"""
 	WIKIDATA_NORMAL = 'wikidata-normal'
 	WIKIDATA_PATTERNS = 'wikidata-patterns'
+	WIKIDATA_BRACKETED_ENTITIES = 'wikidata-bracketed-entities'
+	WIKIDATA_BRACKETED_ENTITIES_RELATIONS = 'wikidata-bracketed-entities-relations'
+	WIKIDATA_PATTERNS_ENTITIES = 'wikidata-patterns-entities'
+	WIKIDATA_PATTERNS_ENTITIES_RELATIONS = 'wikidata-patterns-entities-relations'
 	DBPEDIA_18_NORMAL = 'dbpedia-18-normal'
 	DBPEDIA_18_PATTERNS = 'dbpedia-18-patterns'
+
+
+AnswerFormMap = Dict[AnswerForm, Dict[FormalLanguage, StringAnswer]]
+AnswerForms = Tuple[AnswerForm, ...]
 
 
 class Answer:
@@ -27,7 +35,7 @@ class Answer:
 	A KBQA answer that can be represented in multiple forms.
 	"""
 
-	def __init__(self, forms: Dict[AnswerForm, Dict[FormalLanguage, StringAnswer]]) -> None:
+	def __init__(self, forms: AnswerFormMap) -> None:
 		self._forms = forms
 
 	def in_form(self, form: AnswerForm, language: FormalLanguage) -> StringAnswer:

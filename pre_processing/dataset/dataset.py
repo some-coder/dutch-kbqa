@@ -30,9 +30,35 @@ Range = NewType(
 RawDataset = NewType('RawDataset', Tuple[RawQAPair, ...])
 
 
+def bracketed_forms() -> Tuple[Union[QuestionForm, AnswerForm], ...]:
+	"""
+	Yields all question and answer forms that involve bracketing entities or entities and relations.
+
+	:return: The forms.
+	"""
+	return \
+		(
+			QuestionForm.BRACKETED_ENTITIES, QuestionForm.BRACKETED_ENTITIES_RELATIONS,
+			AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS
+		)
+
+
+def patterned_forms() -> Tuple[Union[QuestionForm, AnswerForm], ...]:
+	"""
+	Yields all question and answer forms that involve replacing entities or entities and relations by patterns.
+
+	:return: The forms.
+	"""
+	return \
+		(
+			QuestionForm.PATTERNS_ENTITIES, QuestionForm.PATTERNS_ENTITIES_RELATIONS,
+			AnswerForm.WIKIDATA_PATTERNS_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS
+		)
+
+
 class Dataset(ABC):
 	"""
-	An abstract base class that represents a KBQA pre_processing.
+	An abstract base class that represents a KBQA dataset.
 	"""
 
 	DATASET_SAVE_DIRECTORY = Path('resources', 'datasets')

@@ -29,8 +29,12 @@ class QuestionForm(Enum):
 	PARAPHRASED = 'paraphrased'
 
 
-ENTITY_BRACKETS: Tuple[str, str] = ('{', '}')
-RELATION_BRACKETS: Tuple[str, str] = ('(', ')')
+ENTITY_BRACKETS: Tuple[str, str] = ('(', ')')
+RELATION_BRACKETS: Tuple[str, str] = ('((', '))')
+
+
+QuestionFormMap = Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]]
+QuestionForms = Tuple[QuestionForm, ...]
 
 
 class Question:
@@ -38,7 +42,7 @@ class Question:
 	A KBQA question that can be represented in multiple forms.
 	"""
 
-	def __init__(self, forms: Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]]) -> None:
+	def __init__(self, forms: QuestionFormMap) -> None:
 		self._forms = forms
 		self._bracket_resolver: Optional[Dict[str, WikiDataSymbol]] = None
 		self._pattern_resolver: Optional[Dict[str, WikiDataSymbol]] = None

@@ -2,7 +2,6 @@
 A class that serves as an interface to the LC Quad 2.0 KBQA dataset.
 """
 
-
 import json
 import os
 import re
@@ -11,23 +10,40 @@ import requests as req
 import utility.match as um
 
 from enum import Enum
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Type, TypedDict, Union, cast
 
-from pre_processing.answer import Answer, AnswerForm, StringAnswer
-from pre_processing.question import ENTITY_BRACKETS, RELATION_BRACKETS, Question, QuestionForm, StringQuestion
+from pre_processing.answer import Answer, AnswerForm, StringAnswer, AnswerFormMap, AnswerForms
+from pre_processing.question import ENTITY_BRACKETS, RELATION_BRACKETS, Question, QuestionForm, StringQuestion, \
+	QuestionFormMap, QuestionForms
 from pre_processing.question_answer_pair import RawQAPair, Metadata, QAPair
-from pre_processing.dataset.dataset import Dataset, RawDataset
+from pre_processing.dataset.dataset import Dataset, RawDataset, bracketed_forms, patterned_forms
 
 from utility.language import NaturalLanguage, FormalLanguage
 from utility.typing import HTTPAddress, WikiDataSymbol
-from utility.wikidata import WIKIDATA_ENTITY, WIKIDATA_RELATION, symbol_labels
+from utility.wikidata import WikiDataType, symbol_labels
 
 
 class QualityGroup(Enum):
 	NONE = 'none'
 	Q = 'q'
 	Q_AND_P = 'q-and-p'
+
+
+class AddendaEntry(TypedDict):
+	links: Dict[str, WikiDataSymbol]
+	quality: str  # the string form of a `QualityGroup`
+
+
+@dataclass
+class ReplaceInstruction:
+	pat: str  # the pattern to replace
+	rep: str  # the replacement for the pattern
+	use_reg_exp: bool  # whether to use RegExp (`True`) or plain `replace` (`False`) for replacement
+
+
+Addenda = Dict[int, AddendaEntry]
 
 
 class LCQuAD(Dataset):
@@ -48,8 +64,27 @@ class LCQuAD(Dataset):
 			'uid', 'subgraph', 'template_index', 'template', 'template_id', 'answer'
 		)
 
+	# Note: order may matter, so be sure to place instructions in a sequence that makes sense!
+	QUESTION_NORMAL_REPLACE_INSTRUCTIONS: Tuple[ReplaceInstruction, ...] = \
+		(
+			ReplaceInstruction('\\', '', False),
+		)
+	QUESTION_ADDENDA_REPLACE_INSTRUCTIONS: Tuple[ReplaceInstruction, ...] = \
+		(
+			ReplaceInstruction('\\', '', False),
+			ReplaceInstruction('(of )', '', True)
+		) + \
+		tuple(
+			ReplaceInstruction('%s' % (sym,), '\\%s' % (sym,), False) for sym in
+			ENTITY_BRACKETS + RELATION_BRACKETS + ('+', '[', ']')
+		)
+	ANSWER_NORMAL_REPLACE_INSTRUCTIONS: Tuple[ReplaceInstruction, ...] = \
+		(
+			ReplaceInstruction('(wd)(t)?(:)', '', True),
+		)
+
 	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
-		self._addenda: Optional[Dict[int, Dict[str, Any]]] = None
+		self._addenda: Optional[Addenda] = None
 		super().__init__(dataset_locations)
 		res = req.get(self._dataset_locations[1])
 		if res.status_code != 200:
@@ -137,92 +172,132 @@ class LCQuAD(Dataset):
 		return d, QualityGroup.Q_AND_P if all_ps_linked else QualityGroup.Q
 
 	@staticmethod
-	def _question_addenda_replacement(
-			string: str,
-			key: QuestionForm,
-			typ: Union[WIKIDATA_ENTITY, WIKIDATA_RELATION],
-			i: int) -> str:
-		if key in (QuestionForm.BRACKETED_ENTITIES, QuestionForm.BRACKETED_ENTITIES_RELATIONS):
-			if typ == WIKIDATA_ENTITY or \
-					(typ == WIKIDATA_RELATION and key == QuestionForm.BRACKETED_ENTITIES_RELATIONS):
-				brk: Tuple[str, str] = ENTITY_BRACKETS if typ == WIKIDATA_ENTITY else RELATION_BRACKETS
-				return '%s%s%s' % (brk[0], string, brk[1])
-			else:
-				return '%s' % (string,)  # relations in bracket-entity matching: leave it alone
-		elif key in (QuestionForm.PATTERNS_ENTITIES, QuestionForm.PATTERNS_ENTITIES_RELATIONS):
-			if typ == WIKIDATA_ENTITY or (typ == WIKIDATA_RELATION and key == QuestionForm.PATTERNS_ENTITIES_RELATIONS):
-				return '%s%d' % (typ, i)
-			else:
-				return '%s' % (string,)  # relations in pattern-entity matching: leave it alone
-		else:
-			raise ValueError('Unrecognised question form: \'%s\'.' % (key.value,))
+	def _should_replace_with_addenda(
+			q_or_a: Union[Type[Question], Type[Answer]],
+			form: Union[QuestionForm, AnswerForm],
+			wd_type: WikiDataType) -> bool:
+		if wd_type == WikiDataType.ENTITY:
+			return True
+		elif wd_type == WikiDataType.RELATION:
+			return \
+				(
+					q_or_a == Question and
+					form in (
+						QuestionForm.BRACKETED_ENTITIES_RELATIONS,
+						QuestionForm.PATTERNS_ENTITIES_RELATIONS)
+				) or \
+				(
+					q_or_a == Answer and
+					form in (
+						AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS,
+						AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS)
+				)
+		return False
 
 	@staticmethod
-	def _massaged_addenda_string(raw: str) -> str:
-		rep = raw.replace('\\', '')
-		rep = re.sub('(of )', '', rep)
-		rep = rep.replace('%s' % (ENTITY_BRACKETS[0],), '\\%s' % (ENTITY_BRACKETS[0]))
-		rep = rep.replace('%s' % (ENTITY_BRACKETS[1],), '\\%s' % (ENTITY_BRACKETS[1]))
-		rep = rep.replace('%s' % (RELATION_BRACKETS[0],), '\\%s' % (RELATION_BRACKETS[0]))
-		rep = rep.replace('%s' % (RELATION_BRACKETS[1],), '\\%s' % (RELATION_BRACKETS[1]))
-		rep = rep.replace('+', '\\+')
-		rep = rep.replace('[', '\\[').replace(']', '\\]')
-		return rep
+	def _addenda_replacement(
+			s: str,
+			q_or_a: Union[Type[Question], Type[Answer]],
+			form: Union[QuestionForm, AnswerForm],
+			wd_type: WikiDataType,
+			i: int) -> str:
+		if form in bracketed_forms() and LCQuAD._should_replace_with_addenda(q_or_a, form, wd_type):
+			breaks: Tuple[str, str] = ENTITY_BRACKETS if wd_type == WikiDataType.ENTITY else RELATION_BRACKETS
+			return '%s%s%s' % (breaks[0], s, breaks[1])
+		elif form in patterned_forms() and LCQuAD._should_replace_with_addenda(q_or_a, form, wd_type):
+			return '%s%d' % (wd_type.value, i)
+		return s  # this form does not demand any replacements via addenda
 
-	def _question_addenda_from_raw_qa_pair(
+	@staticmethod
+	def _massaged_addenda_string(s: str, q_or_a: Union[Type[Question], Type[Answer]]) -> str:
+		if q_or_a == Answer:
+			return s  # Q- and P-values are already 'neat'.
+		else:
+			for ins in LCQuAD.QUESTION_ADDENDA_REPLACE_INSTRUCTIONS:
+				s = re.sub(ins.pat, ins.rep, s) if ins.use_reg_exp else s.replace(ins.pat, ins.rep)
+			return s
+
+	@staticmethod
+	def _normal_form_with_replacements(
+			raw: RawQAPair,
+			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[StringQuestion, StringAnswer]:
+		s = raw['question' if q_or_a == Question else 'sparql_wikidata']
+		rep_ins: Tuple[ReplaceInstruction, ...] = \
+			LCQuAD.QUESTION_NORMAL_REPLACE_INSTRUCTIONS if q_or_a == Question else LCQuAD.ANSWER_NORMAL_REPLACE_INSTRUCTIONS
+		for ins in rep_ins:
+			s = re.sub(ins.pat, ins.rep, s) if ins.use_reg_exp else s.replace(ins.pat, ins.rep)
+		return StringQuestion(s) if q_or_a == Question else StringAnswer(s)
+
+	@staticmethod
+	def _should_substitute(
+			link_item: Tuple[str, WikiDataSymbol],
+			q_or_a: Union[Type[Question], Type[Answer]],
+			form: Union[QuestionForm, AnswerForm]) -> bool:
+		return not (
+			q_or_a == Answer and
+			form in (AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES) and
+			link_item[1][0] == WikiDataType.RELATION.value
+		)
+
+	def _question_or_answer_addenda(
 			self,
-			raw_qa_pair: RawQAPair) -> Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]]:
-		add: Dict[str, Any] = self._addenda[int(raw_qa_pair['uid'])]
-		d: Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]] = {}
-		keys: Tuple[QuestionForm, ...] = tuple()
+			raw: RawQAPair,
+			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[QuestionFormMap, AnswerFormMap]:
+		d: Union[QuestionFormMap, AnswerFormMap] = {}
+		add: AddendaEntry
+		if self._addenda is None:
+			raise RuntimeError('[_question_or_answer_addenda] Addenda not found!')
+		else:
+			add = cast(AddendaEntry, self._addenda[int(raw['uid'])])
+		keys: Union[QuestionForms, AnswerForms] = tuple()
 		if add['quality'] in (QualityGroup.Q.value, QualityGroup.Q_AND_P.value):
-			keys += (QuestionForm.BRACKETED_ENTITIES, QuestionForm.PATTERNS_ENTITIES)
+			keys += \
+				(QuestionForm.BRACKETED_ENTITIES, QuestionForm.PATTERNS_ENTITIES) if q_or_a == Question else \
+				(AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES)
 		if add['quality'] == QualityGroup.Q_AND_P.value:
-			keys += (QuestionForm.BRACKETED_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES_RELATIONS)
+			keys += \
+				(QuestionForm.BRACKETED_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES_RELATIONS) if q_or_a == Question else \
+				(AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS, AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS)
 		for key in keys:
-			q_d_counts: Tuple[int, int] = (0, 0)
-			if key not in d:
-				d[key] = {}
-			# start with the original question
-			d[key][NaturalLanguage.ENGLISH] = raw_qa_pair['question'].replace('\\', '')
-			for lnk_key, lnk_val in add['links'].items():
-				msg: str = LCQuAD._massaged_addenda_string(lnk_key)
-				if lnk_val[0] == WIKIDATA_ENTITY:
-					d[key][NaturalLanguage.ENGLISH] = StringQuestion(re.sub(
-						'(%s)' % (msg,),
-						LCQuAD._question_addenda_replacement(
-							msg, key, WIKIDATA_ENTITY, q_d_counts[0]).replace('\\', ''),
-						d[key][NaturalLanguage.ENGLISH]))
-					q_d_counts = (q_d_counts[0] + 1, q_d_counts[1])
-				elif lnk_val[0] == WIKIDATA_RELATION:
-					d[key][NaturalLanguage.ENGLISH] = StringQuestion(re.sub(
-						'(%s)' % (msg,),
-						LCQuAD._question_addenda_replacement(
-							msg, key, WIKIDATA_RELATION, q_d_counts[1]).replace('\\', ''),
-						d[key][NaturalLanguage.ENGLISH]
-					))
-					q_d_counts = (q_d_counts[0], q_d_counts[1] + 1)
+			# go over all question or answer forms
+			q_p_counts: Dict[WikiDataType, int] = {wdt: 0 for wdt in (WikiDataType.ENTITY, WikiDataType.RELATION)}
+			sub_key: Union[NaturalLanguage, FormalLanguage] = \
+				NaturalLanguage.ENGLISH if q_or_a == Question else FormalLanguage.SPARQL
+			d[key] = {}
+			d[key][sub_key] = LCQuAD._normal_form_with_replacements(raw, q_or_a)
+			for link_key, link_val in add['links'].items():
+				# replace the original question or answer piece-by-piece
+				massaged: str = LCQuAD._massaged_addenda_string(link_key, Type[Question])
+				wd_type: WikiDataType = WikiDataType.ENTITY if link_val[0] == WikiDataType.ENTITY.value else WikiDataType.RELATION
+				replacement = LCQuAD._addenda_replacement(massaged, q_or_a, key, wd_type, q_p_counts[wd_type]).replace('\\', '')
+				substituted = d[key][sub_key]  # simply the normal question or answer, in case of no substitution
+				if LCQuAD._should_substitute((link_key, link_val), q_or_a, key):
+					substituted = re.sub('(%s)' % (massaged if q_or_a == Question else link_val,), replacement, substituted)
+				d[key][sub_key] = StringQuestion(substituted) if q_or_a == Question else StringAnswer(substituted)
+				q_p_counts[wd_type] += 1
 		return d
 
-	def _question_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Question:
-		forms: Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]] = {}
-		for key, form in LCQuAD.QUESTION_KEYS.items():
-			str_q: StringQuestion = raw_qa_pair[key]
-			forms[form] = {}
-			forms[form][NaturalLanguage.ENGLISH] = str_q
+	def _question_or_answer_from_raw_qa_pair(
+			self,
+			raw_qa_pair: RawQAPair,
+			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[Question, Answer]:
+		forms: Union[QuestionFormMap, AnswerFormMap] = {}
+		key_items: Union[Dict[str, QuestionForm], Dict[str, AnswerForm]] = \
+			LCQuAD.QUESTION_KEYS if q_or_a == Question else LCQuAD.ANSWER_KEYS
+		for key, form in key_items.items():
+			s: Union[StringQuestion, StringAnswer] = \
+				StringQuestion(raw_qa_pair[key]) if q_or_a == Question else StringAnswer(raw_qa_pair[key])
+			forms[form] = {NaturalLanguage.ENGLISH: s} if q_or_a == Question else {FormalLanguage.SPARQL: s}
 		if self._addenda is not None and int(raw_qa_pair['uid']) in self._addenda.keys():
 			# retrieve additional addenda information, as it's available
-			forms.update(self._question_addenda_from_raw_qa_pair(raw_qa_pair))
-		q = Question(forms)
-		return q
+			forms.update(self._question_or_answer_addenda(raw_qa_pair, q_or_a))
+		return Question(forms) if q_or_a == Question else Answer(forms)
+
+	def _question_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Question:
+		return self._question_or_answer_from_raw_qa_pair(raw_qa_pair, Question)
 
 	def _answer_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Answer:
-		forms: Dict[AnswerForm, Dict[FormalLanguage, StringAnswer]] = {}
-		for key, form in LCQuAD.ANSWER_KEYS.items():
-			str_a: StringAnswer = raw_qa_pair[key]
-			forms[form] = {}
-			forms[form][FormalLanguage.SPARQL] = str_a
-		return Answer(forms)
+		return self._question_or_answer_from_raw_qa_pair(raw_qa_pair, Answer)
 
 	def _metadata_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Metadata:
 		metadata: Metadata = Metadata({})

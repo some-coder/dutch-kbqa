@@ -6,7 +6,8 @@ Utility methods to access WikiData's knowledge base.
 import requests as rq
 import time
 
-from typing import Dict, Tuple
+from enum import Enum
+from typing import Dict, Optional, Tuple
 
 from utility.language import NaturalLanguage
 from utility.typing import HTTPAddress, WikiDataSymbol
@@ -18,12 +19,14 @@ WIKIDATA_TOO_MANY_REQUESTS_WAIT = 5
 CONNECTION_DROPPED_WAIT = 30
 
 
-WIKIDATA_ENTITY: str = 'Q'
-WIKIDATA_RELATION: str = 'P'
+class WikiDataType(Enum):
+	ENTITY = 'Q'
+	RELATION = 'P'
 
 
 def wikidata_query(query: str, variables: Tuple[str, ...], wait: bool = False) -> Dict[str, Tuple[str, ...]]:
 	connect_succeeded: bool = False
+	req: Optional[rq.Response] = None
 	while not connect_succeeded:
 		try:
 			req = rq.get(WIKIDATA_URL, params={'format': 'json', 'query': query})
