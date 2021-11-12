@@ -117,6 +117,8 @@ class LCQuAD(Dataset):
 			ReplaceInstruction('(wd)(t)?(:)', '', True),
 		)
 
+	MISSING_SYMBOLS: Tuple[str] = ('n/a', 'None')
+
 	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
 		self._addenda: Optional[Addenda] = None
 		self._wd_symbols_to_q_p: Dict[int, Dict[WikiDataSymbol, str]] = {}
@@ -149,16 +151,45 @@ class LCQuAD(Dataset):
 		with open(self._dataset_save_file(), 'x') as handle:
 			json.dump(joined, handle)
 
+	@staticmethod
+	def _pre_processed_dataset(raw_ds: RawDataset) -> RawDataset:
+		for entry in raw_ds:
+			raw_question: str = entry['question']
+			if raw_question is None or raw_question in LCQuAD.MISSING_SYMBOLS:
+				entry['question'] = None
+				continue
+			raw_question = re.sub('[(){}"]+', '', raw_question)  # remove any redundant parentheses
+			raw_question = re.sub('[? ]+$', '', raw_question)  # remove question marks (we can re-add them later)
+			entry['question'] = raw_question
+		return raw_ds
+
+	def _pre_process_addenda(self) -> None:
+		"""
+		Pre-process the addenda file for integration with the complete QA data.
+
+		Specifically for LC-QuAD 2.0, we remove any trailing question marks; these nearly always are a remnant of
+		matching the string from the original question, where the question mark was the last character of the
+		question.
+		"""
+		for add_id in self._addenda.keys():
+			link_keys = tuple(self._addenda[add_id]['links'].keys())
+			for link_key in link_keys:
+				wd_symbol: WikiDataSymbol = self._addenda[add_id]['links'][link_key]
+				del self._addenda[add_id]['links'][link_key]
+				revised_key: str = re.sub('(\\?)+$', '', link_key)
+				self._addenda[add_id]['links'][revised_key] = wd_symbol
+
 	def _obtained_dataset(self) -> RawDataset:
 		loc = Path(self._dataset_save_file())
 		if os.path.exists(self._default_addenda_location):
 			print('[%s] Addenda file found! Retrieving it...' % (self.__class__.__name__,))
 			with open(self._default_addenda_location, 'r') as handle:
 				self._addenda = {int(kv[0]): kv[1] for kv in json.load(handle).items()}
+				self._pre_process_addenda()
 		if self._dataset_is_already_stored():
 			print('[%s] Dataset already stored! Retrieving it...' % (self.__class__.__name__,))
 			with open(loc, 'r') as handle:
-				return json.load(handle)
+				return self._pre_processed_dataset(json.load(handle))
 		else:
 			self._obtain_dataset()
 			return self._obtained_dataset()  # recursive call, but should be OK

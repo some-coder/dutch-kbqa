@@ -3,7 +3,7 @@ A class for representing a KBQA question-answer pair.
 """
 
 
-from typing import List, Literal, TypedDict, Union
+from typing import List, Literal, Optional, TypedDict, Union
 
 from pre_processing.question import Question
 from pre_processing.answer import Answer
@@ -20,7 +20,7 @@ class Metadata(TypedDict):
 
 class RawQAPair(TypedDict):
 	NNQT_question: str
-	question: str
+	question: Optional[str]
 	paraphrased_question: str
 	sparql_wikidata: str
 	sparql_dbpedia18: str

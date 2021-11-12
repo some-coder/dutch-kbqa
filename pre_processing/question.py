@@ -47,8 +47,8 @@ class Question:
 		self._bracket_resolver: Optional[Dict[str, WikiDataSymbol]] = None
 		self._pattern_resolver: Optional[Dict[str, WikiDataSymbol]] = None
 
-	def in_form(self, form: QuestionForm, language: NaturalLanguage) -> StringQuestion:
-		return self._forms[form][language]
+	def in_form(self, form: QuestionForm, language: NaturalLanguage, question_mark: bool = False) -> StringQuestion:
+		return StringQuestion('%s%s' % (self._forms[form][language], '?' if question_mark else ''))
 
 	@property
 	def question_forms(self) -> Tuple[QuestionForm, ...]:
