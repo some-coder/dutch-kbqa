@@ -258,6 +258,36 @@ class LCQuAD(Dataset):
 			'[_qa_pair_translation] Question %d does not have any suitable form!' % (int(qa_pair.metadata['uid']),))
 
 	@staticmethod
+	def _forms_from_addenda_quality(
+			add: AddendaEntry,
+			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[QuestionForms, AnswerForms]:
+		"""
+		Given addenda, determines which additional representations can be generated.
+
+		:param add: The addenda from which to deduce possible additional representations.
+		:param q_or_a: Whether we're dealing with a `Question` or an `Answer`.
+		:return: The additional forms possible.
+		"""
+		keys: Union[QuestionForms, AnswerForms] = tuple()
+		if add['quality'] in (QualityGroup.Q.value, QualityGroup.Q_AND_P.value):
+			keys += \
+				(
+					QuestionForm.BRACKETED_ENTITIES, QuestionForm.PATTERNS_ENTITIES
+				) if q_or_a == Question else \
+				(
+					AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES
+				)
+		if add['quality'] == QualityGroup.Q_AND_P.value:
+			keys += \
+				(
+					QuestionForm.BRACKETED_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES_RELATIONS
+				) if q_or_a == Question else \
+				(
+					AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS, AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS
+				)
+		return keys
+
+	@staticmethod
 	def _should_replace_with_addenda(
 			q_or_a: Union[Type[Question], Type[Answer]],
 			form: Union[QuestionForm, AnswerForm],
@@ -338,43 +368,72 @@ class LCQuAD(Dataset):
 			self._wd_symbols_to_q_p[uid] = {}
 		self._wd_symbols_to_q_p[uid][wd_symbol] = '%s%d' % (letter, count)
 
-	def _question_or_answer_addenda(
+	def _addenda_form(
+			self,
+			raw: RawQAPair,
+			add: AddendaEntry,
+			form: Union[QuestionForm, AnswerForm],
+			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[
+				Dict[NaturalLanguage, StringQuestion],
+				Dict[FormalLanguage, StringAnswer]
+			]:
+		"""
+		Generates a single language-to-representation mapping for a question- or answer-form, via addenda.
+
+		:param raw: The raw QA pair to generate the language-representation mapping for.
+		:param add: The addenda entry to use for populating the mapping.
+		:param form: The question- or answer-form.
+		:param q_or_a: Whether we're dealing with a `Question` or an `Answer`.
+		:return: The language-representation mapping.
+		"""
+		q_p_counts: Dict[WikiDataType, int] = {wdt: 0 for wdt in (WikiDataType.ENTITY, WikiDataType.RELATION)}
+		sub_key: Union[NaturalLanguage, FormalLanguage] = \
+			NaturalLanguage.ENGLISH if q_or_a == Question else FormalLanguage.SPARQL
+		lr_map: Union[Dict[NaturalLanguage, StringQuestion], Dict[FormalLanguage, StringAnswer]] = {
+			sub_key: LCQuAD._normal_form_with_replacements(raw, q_or_a)}
+		for link_key, link_val in add['links'].items():
+			# replace the original question or answer piece-by-piece
+			massaged: str = LCQuAD._massaged_addenda_string(link_key, Type[Question])
+			wd_type: WikiDataType = \
+				WikiDataType.ENTITY if link_val[0] == WikiDataType.ENTITY.value else WikiDataType.RELATION
+			replacement = \
+				LCQuAD._addenda_replacement(massaged, q_or_a, form, wd_type, q_p_counts[wd_type]).replace('\\', '')
+			substituted = lr_map[sub_key]  # simply the normal question or answer, in case of no substitution
+			if LCQuAD._should_substitute((link_key, link_val), q_or_a, form):
+				substituted = re.sub('(%s)' % (massaged if q_or_a == Question else link_val,), replacement, substituted)
+				self._update_wd_symbols_to_q_p(int(raw['uid']), link_val, q_p_counts[wd_type])
+				q_p_counts[wd_type] += 1  # only increment Q- and P-counts when we actually substitute
+			lr_map[sub_key] = StringQuestion(substituted) if q_or_a == Question else StringAnswer(substituted)
+		return lr_map
+
+	def _question_or_answer_addenda_forms(
 			self,
 			raw: RawQAPair,
 			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[QuestionFormMap, AnswerFormMap]:
+		"""
+		Yields additional question- or answer-representations based on addenda information.
+
+		The supplemental question representations are
+		* `QuestionForm.BRACKETED_ENTITIES`,
+		* `QuestionForm.BRACKETED_ENTITIES_RELATIONS`
+		* `QuestionForm.PATTERNS_ENTITIES`
+		* `QuestionForm.PATTERNS_ENTITIES_RELATIONS`
+		Analogous extra representations exist for answers, listed in the `AnswerForm` enumeration.
+
+		:param raw: The raw QA pair to derive extra representations for.
+		:param q_or_a: Whether to generate extra representations for questions or answers.
+		:return: A mapping from forms, via languages, to representations.
+		"""
 		d: Union[QuestionFormMap, AnswerFormMap] = {}
 		add: AddendaEntry
 		if self._addenda is None:
 			raise RuntimeError('[_question_or_answer_addenda] Addenda not found!')
 		else:
 			add = cast(AddendaEntry, self._addenda[int(raw['uid'])])
-		keys: Union[QuestionForms, AnswerForms] = tuple()
-		if add['quality'] in (QualityGroup.Q.value, QualityGroup.Q_AND_P.value):
-			keys += \
-				(QuestionForm.BRACKETED_ENTITIES, QuestionForm.PATTERNS_ENTITIES) if q_or_a == Question else \
-				(AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES)
-		if add['quality'] == QualityGroup.Q_AND_P.value:
-			keys += \
-				(QuestionForm.BRACKETED_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES_RELATIONS) if q_or_a == Question else \
-				(AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS, AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS)
+		keys = LCQuAD._forms_from_addenda_quality(add, q_or_a)
 		for key in keys:
 			# go over all question or answer forms
-			q_p_counts: Dict[WikiDataType, int] = {wdt: 0 for wdt in (WikiDataType.ENTITY, WikiDataType.RELATION)}
-			sub_key: Union[NaturalLanguage, FormalLanguage] = \
-				NaturalLanguage.ENGLISH if q_or_a == Question else FormalLanguage.SPARQL
-			d[key] = {}
-			d[key][sub_key] = LCQuAD._normal_form_with_replacements(raw, q_or_a)
-			for link_key, link_val in add['links'].items():
-				# replace the original question or answer piece-by-piece
-				massaged: str = LCQuAD._massaged_addenda_string(link_key, Type[Question])
-				wd_type: WikiDataType = WikiDataType.ENTITY if link_val[0] == WikiDataType.ENTITY.value else WikiDataType.RELATION
-				replacement = LCQuAD._addenda_replacement(massaged, q_or_a, key, wd_type, q_p_counts[wd_type]).replace('\\', '')
-				substituted = d[key][sub_key]  # simply the normal question or answer, in case of no substitution
-				if LCQuAD._should_substitute((link_key, link_val), q_or_a, key):
-					substituted = re.sub('(%s)' % (massaged if q_or_a == Question else link_val,), replacement, substituted)
-					self._update_wd_symbols_to_q_p(int(raw['uid']), link_val, q_p_counts[wd_type])
-					q_p_counts[wd_type] += 1  # only increment Q- and P-counts when we actually substitute
-				d[key][sub_key] = StringQuestion(substituted) if q_or_a == Question else StringAnswer(substituted)
+			d[key] = self._addenda_form(raw, add, key, q_or_a)
 		return d
 
 	def _question_or_answer_from_raw_qa_pair(
@@ -390,7 +449,7 @@ class LCQuAD(Dataset):
 			forms[form] = {NaturalLanguage.ENGLISH: s} if q_or_a == Question else {FormalLanguage.SPARQL: s}
 		if self._addenda is not None and int(raw_qa_pair['uid']) in self._addenda.keys():
 			# retrieve additional addenda information, as it's available
-			forms.update(self._question_or_answer_addenda(raw_qa_pair, q_or_a))
+			forms.update(self._question_or_answer_addenda_forms(raw_qa_pair, q_or_a))
 		return Question(forms) if q_or_a == Question else Answer(forms)
 
 	def _question_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Question:
