@@ -4,13 +4,14 @@ Methods for translating questions from a KBQA dataset into another language.
 
 
 import csv
+import json
 import os
 import six
 
 from google.cloud import translate_v2 as tl
 from pathlib import Path
 
-from typing import Dict, Optional, cast
+from typing import Dict, List, Optional, Tuple, cast
 
 from pre_processing.dataset.dataset import Dataset
 
@@ -45,6 +46,30 @@ def translate_text(text: str, language: NaturalLanguage) -> str:
 		text: str = text.decode('utf-8')
 	result: Dict[str, str] = cast(Dict[str, str], client.translate(text, target_language=language.value))
 	return result[TRANSLATED_TEXT_KEY]
+
+
+def translate_texts(texts: List[Tuple[int, str]], language: NaturalLanguage, save_file: str) -> None:
+	_confirm_access()
+	_configure_credentials()
+	translation_dir = Path(TRANSLATIONS_DIRECTORY)
+	try:
+		os.makedirs(translation_dir)
+	except FileExistsError:
+		pass
+	previous: Optional[Dict[int, str]] = None
+	if os.path.exists(translation_dir / save_file):
+		with open(translation_dir / save_file, 'r') as handle:
+			previous = json.load(handle)
+	with open(translation_dir / save_file, 'w') as handle:
+		d: Dict[int, str] = {}
+		for identifier, text in texts:
+			d[identifier] = translate_text(text, language)
+			print(d[identifier])
+		if previous is None:
+			json.dump(d, handle)
+		else:
+			previous.update(d)
+			json.dump(previous, handle)
 
 
 def translate_for_dataset(
