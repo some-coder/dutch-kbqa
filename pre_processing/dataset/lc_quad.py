@@ -2,7 +2,6 @@
 A class that serves as an interface to the LC Quad 2.0 KBQA dataset.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -16,7 +15,7 @@ import utility.match as um
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple, Type, TypedDict, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypedDict, Union, cast
 
 from pre_processing.answer import Answer, AnswerForm, StringAnswer, AnswerFormMap, AnswerForms
 from pre_processing.translation import _confirm_access, _configure_credentials, translate_text
@@ -28,7 +27,6 @@ from pre_processing.dataset.dataset import Dataset, RawDataset, bracketed_forms,
 from utility.language import NaturalLanguage, FormalLanguage
 from utility.typing import HTTPAddress, WikiDataSymbol
 from utility.wikidata import WikiDataType, symbol_labels
-
 
 ADDENDA_PATH = Path('resources/datasets/lcquad/addenda.json')
 TRANSLATIONS_PATH = Path('resources/datasets/lcquad/translations.json')
@@ -68,7 +66,6 @@ Addenda = Dict[int, AddendaEntry]
 
 
 class LCQuAD(Dataset):
-
 	class QuestionKeysType(TypedDict):
 		NNQT_question: QuestionForm
 		question: QuestionForm
@@ -105,7 +102,6 @@ class LCQuAD(Dataset):
 	QUESTION_ADDENDA_REPLACE_INSTRUCTIONS: Tuple[ReplaceInstruction, ...] = \
 		(
 			ReplaceInstruction('\\', '', False),
-			ReplaceInstruction('(of )', '', True)
 		) + \
 		tuple(
 			ReplaceInstruction('%s' % (sym,), '\\%s' % (sym,), False) for sym in
@@ -158,7 +154,7 @@ class LCQuAD(Dataset):
 			if raw_question is None or raw_question in LCQuAD.MISSING_SYMBOLS:
 				entry['question'] = None
 				continue
-			raw_question = re.sub('[(){}"]+', '', raw_question)  # remove any redundant parentheses
+			raw_question = re.sub('[(){}\\[\\]"\\\\]+', '', raw_question)  # remove any redundant parentheses
 			raw_question = re.sub('[? ]+$', '', raw_question)  # remove question marks (we can re-add them later)
 			entry['question'] = raw_question
 		return raw_ds
@@ -176,7 +172,10 @@ class LCQuAD(Dataset):
 			for link_key in link_keys:
 				wd_symbol: WikiDataSymbol = self._addenda[add_id]['links'][link_key]
 				del self._addenda[add_id]['links'][link_key]
-				revised_key: str = re.sub('(\\?)+$', '', link_key)
+				revised_key: str = re.sub('[(){}\\[\\]"\\\\]+', '', link_key)
+				revised_key = re.sub('[? ]+$', '', revised_key)
+				for special_symbol in ('+', '?'):
+					revised_key = revised_key.replace(special_symbol, '\\' + special_symbol)
 				self._addenda[add_id]['links'][revised_key] = wd_symbol
 
 	def _obtained_dataset(self) -> RawDataset:
@@ -250,7 +249,8 @@ class LCQuAD(Dataset):
 				link_translations: Dict[WikiDataSymbol, str] = {}
 				uid: int = int(qa_pair.metadata['uid'])
 				for link_key, link_val in self._addenda[uid]['links'].items():
-					link_translations[WikiDataSymbol(self._wd_symbols_to_q_p[uid][link_val])] = translate_text(link_key, language)
+					link_translations[WikiDataSymbol(self._wd_symbols_to_q_p[uid][link_val])] = translate_text(link_key,
+					                                                                                           language)
 				return {'language': language.value, 'sentence': translated, 'wd_symbols': link_translations}
 			except KeyError:
 				continue  # try another form
@@ -274,17 +274,18 @@ class LCQuAD(Dataset):
 				(
 					QuestionForm.BRACKETED_ENTITIES, QuestionForm.PATTERNS_ENTITIES
 				) if q_or_a == Question else \
-				(
-					AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES
-				)
+					(
+						AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES
+					)
 		if add['quality'] == QualityGroup.Q_AND_P.value:
 			keys += \
 				(
 					QuestionForm.BRACKETED_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES_RELATIONS
 				) if q_or_a == Question else \
-				(
-					AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS, AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS
-				)
+					(
+						AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS,
+						AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS
+					)
 		return keys
 
 	@staticmethod
@@ -297,16 +298,16 @@ class LCQuAD(Dataset):
 		elif wd_type == WikiDataType.RELATION:
 			return \
 				(
-					q_or_a == Question and
-					form in (
-						QuestionForm.BRACKETED_ENTITIES_RELATIONS,
-						QuestionForm.PATTERNS_ENTITIES_RELATIONS)
+						q_or_a == Question and
+						form in (
+							QuestionForm.BRACKETED_ENTITIES_RELATIONS,
+							QuestionForm.PATTERNS_ENTITIES_RELATIONS)
 				) or \
 				(
-					q_or_a == Answer and
-					form in (
-						AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS,
-						AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS)
+						q_or_a == Answer and
+						form in (
+							AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS,
+							AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS)
 				)
 		return False
 
@@ -353,9 +354,9 @@ class LCQuAD(Dataset):
 			q_or_a: Union[Type[Question], Type[Answer]],
 			form: Union[QuestionForm, AnswerForm]) -> bool:
 		return not (
-			q_or_a == Answer and
-			form in (AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES) and
-			link_item[1][0] == WikiDataType.RELATION.value
+				q_or_a == Answer and
+				form in (AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES) and
+				link_item[1][0] == WikiDataType.RELATION.value
 		)
 
 	def _update_wd_symbols_to_q_p(
@@ -368,15 +369,36 @@ class LCQuAD(Dataset):
 			self._wd_symbols_to_q_p[uid] = {}
 		self._wd_symbols_to_q_p[uid][wd_symbol] = '%s%d' % (letter, count)
 
+	@staticmethod
+	def _overlaps_with_interval(iv_1: Tuple[int, int], iv_2: Tuple[int, int]) -> bool:
+		iv_l = iv_1 if iv_1[0] < iv_2[0] else iv_2
+		iv_r = iv_2 if iv_1[0] < iv_2[0] else iv_1
+		return iv_l[1] <= iv_r[0]
+
+	@staticmethod
+	def _links_overlap(sen: Union[StringQuestion, StringAnswer], links: Dict[str, WikiDataSymbol]) -> bool:
+		intervals: List[Tuple[int, int]] = []  # string index intervals for matched entities and relations
+		for link in links.keys():
+			interval: Tuple[int, int] = re.search('(%s)' % (link,), sen).span()
+			for previous_interval in intervals:
+				if LCQuAD._overlaps_with_interval(interval, previous_interval):
+					return False
+			intervals.append(interval)
+		return True
+
+	@staticmethod
+	def _answer_contains_uncovered_wiki_data_prefixes(ans: StringAnswer) -> bool:
+		return re.search('((ps:)|(pq:)|(p:))[QP][0-9]+', ans) is not None
+
 	def _addenda_form(
 			self,
 			raw: RawQAPair,
 			add: AddendaEntry,
 			form: Union[QuestionForm, AnswerForm],
 			q_or_a: Union[Type[Question], Type[Answer]]) -> Union[
-				Dict[NaturalLanguage, StringQuestion],
-				Dict[FormalLanguage, StringAnswer]
-			]:
+		Dict[NaturalLanguage, Optional[StringQuestion]],
+		Dict[FormalLanguage, StringAnswer]
+	]:
 		"""
 		Generates a single language-to-representation mapping for a question- or answer-form, via addenda.
 
@@ -384,13 +406,21 @@ class LCQuAD(Dataset):
 		:param add: The addenda entry to use for populating the mapping.
 		:param form: The question- or answer-form.
 		:param q_or_a: Whether we're dealing with a `Question` or an `Answer`.
-		:return: The language-representation mapping.
+		:return: Optional. The language-representation addenda, if they can be construed.
 		"""
 		q_p_counts: Dict[WikiDataType, int] = {wdt: 0 for wdt in (WikiDataType.ENTITY, WikiDataType.RELATION)}
 		sub_key: Union[NaturalLanguage, FormalLanguage] = \
 			NaturalLanguage.ENGLISH if q_or_a == Question else FormalLanguage.SPARQL
-		lr_map: Union[Dict[NaturalLanguage, StringQuestion], Dict[FormalLanguage, StringAnswer]] = {
-			sub_key: LCQuAD._normal_form_with_replacements(raw, q_or_a)}
+		lr_map: Union[Dict[NaturalLanguage, StringQuestion], Dict[FormalLanguage, StringAnswer]] = \
+			{sub_key: LCQuAD._normal_form_with_replacements(raw, q_or_a)}
+		if q_or_a == Question:
+			if \
+				(
+					LCQuAD._links_overlap(lr_map[sub_key], add['links']) or
+					LCQuAD._answer_contains_uncovered_wiki_data_prefixes(StringAnswer(raw['sparql_wikidata']))
+				):
+				# Question is illegal; skip it.
+				return {NaturalLanguage.ENGLISH: None}
 		for link_key, link_val in add['links'].items():
 			# replace the original question or answer piece-by-piece
 			massaged: str = LCQuAD._massaged_addenda_string(link_key, Type[Question])
@@ -400,7 +430,13 @@ class LCQuAD(Dataset):
 				LCQuAD._addenda_replacement(massaged, q_or_a, form, wd_type, q_p_counts[wd_type]).replace('\\', '')
 			substituted = lr_map[sub_key]  # simply the normal question or answer, in case of no substitution
 			if LCQuAD._should_substitute((link_key, link_val), q_or_a, form):
+				# if raw['uid'] == 18670:
+				# 	print('(form) %s' % (form.value,))
+				# 	print('\t(massaged)     \'%s\'.' % (massaged,))
 				substituted = re.sub('(%s)' % (massaged if q_or_a == Question else link_val,), replacement, substituted)
+				# if raw['uid'] == 18670:
+				# 	print('\t(replacement)  \'%s\'.' % (replacement,))
+				# 	print('\t(substitution) \'%s\'.' % (substituted,))
 				self._update_wd_symbols_to_q_p(int(raw['uid']), link_val, q_p_counts[wd_type])
 				q_p_counts[wd_type] += 1  # only increment Q- and P-counts when we actually substitute
 			lr_map[sub_key] = StringQuestion(substituted) if q_or_a == Question else StringAnswer(substituted)
@@ -444,6 +480,9 @@ class LCQuAD(Dataset):
 		key_items = LCQuAD.QUESTION_KEYS if q_or_a == Question else LCQuAD.ANSWER_KEYS
 		for key, form in key_items.items():
 			key: Union[QuestionKey, AnswerKey]  # guaranteed
+			if raw_qa_pair[key] is None:
+				forms[form] = {NaturalLanguage.ENGLISH: None} if q_or_a else {FormalLanguage.SPARQL: None}
+				continue
 			s: Union[StringQuestion, StringAnswer] = \
 				StringQuestion(raw_qa_pair[key]) if q_or_a == Question else StringAnswer(raw_qa_pair[key])
 			forms[form] = {NaturalLanguage.ENGLISH: s} if q_or_a == Question else {FormalLanguage.SPARQL: s}

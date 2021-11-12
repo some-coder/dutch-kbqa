@@ -33,7 +33,7 @@ ENTITY_BRACKETS: Tuple[str, str] = ('(', ')')
 RELATION_BRACKETS: Tuple[str, str] = ('((', '))')
 
 
-QuestionFormMap = Dict[QuestionForm, Dict[NaturalLanguage, StringQuestion]]
+QuestionFormMap = Dict[QuestionForm, Dict[NaturalLanguage, Optional[StringQuestion]]]
 QuestionForms = Tuple[QuestionForm, ...]
 
 
@@ -48,6 +48,9 @@ class Question:
 		self._pattern_resolver: Optional[Dict[str, WikiDataSymbol]] = None
 
 	def in_form(self, form: QuestionForm, language: NaturalLanguage, question_mark: bool = False) -> StringQuestion:
+		if self._forms[form][language] is None:
+			raise KeyError(
+				'Form-language combination \'%s\'-\'%s\' is not given for this question.' % (form.value, language.value))
 		return StringQuestion('%s%s' % (self._forms[form][language], '?' if question_mark else ''))
 
 	@property
