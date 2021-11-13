@@ -60,16 +60,41 @@ def translate_texts(texts: List[Tuple[int, str]], language: NaturalLanguage, sav
 	if os.path.exists(translation_dir / save_file):
 		with open(translation_dir / save_file, 'r') as handle:
 			previous = json.load(handle)
+	d: Dict[int, str] = {}
+	for index, content in enumerate(texts):
+		identifier = content[0]
+		text = content[1]
+		d[identifier] = translate_text(text, language)
+		print('\t%s' % (d[identifier],))
+		if index != 0 and index % 10 == 0:
+			with open(translation_dir / save_file, 'w') as handle:
+				if previous is None:
+					json.dump(d, handle)
+				else:
+					previous.update(d)
+					json.dump(previous, handle)
+			print(
+				'\t[translate_texts] Saved indices [%6d, %6d] to %s.' %
+				(
+					index - 10,
+					index,
+					translation_dir / save_file
+				)
+			)
 	with open(translation_dir / save_file, 'w') as handle:
-		d: Dict[int, str] = {}
-		for identifier, text in texts:
-			d[identifier] = translate_text(text, language)
-			print(d[identifier])
 		if previous is None:
 			json.dump(d, handle)
 		else:
 			previous.update(d)
 			json.dump(previous, handle)
+	print(
+		'\t[translate_texts] Saved all indices (%d to %d) to %s.' %
+		(
+			0,
+			len(texts) - 1,
+			translation_dir / save_file
+		)
+	)
 
 
 def translate_for_dataset(

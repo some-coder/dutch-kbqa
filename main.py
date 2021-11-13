@@ -19,8 +19,15 @@ def translate_lc_quad_bracket_entity_relation_pairs(
 					question_mark=True)
 		except KeyError:
 			pass
+	if idx_range[0] < 0 or idx_range[1] > len(texts):
+		raise ValueError('Indices must lie between 0 and %6d.' % (len(texts),))
 	translate_texts([text for text in texts.items()][idx_range[0]:idx_range[1]], language, save_file)
 
 
 if __name__ == '__main__':
-	translate_lc_quad_bracket_entity_relation_pairs(LCQuAD(), NaturalLanguage.DUTCH, (0, 1), 'dutch-brackets.json')
+	translate_lc_quad_bracket_entity_relation_pairs(
+		LCQuAD(),
+		NaturalLanguage.DUTCH,
+		(int(9e3), 9766),
+		'dutch-brackets.json'
+	)

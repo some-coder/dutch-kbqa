@@ -1,6 +1,7 @@
 # JSON
 *.json
 !resources/datasets/lcquad/addenda.json
+!translations/dutch-brackets.json
 
 
 # JetBrains caches
