@@ -66,6 +66,7 @@ Addenda = Dict[int, AddendaEntry]
 
 
 class LCQuAD(Dataset):
+
 	class QuestionKeysType(TypedDict):
 		NNQT_question: QuestionForm
 		question: QuestionForm
@@ -118,6 +119,7 @@ class LCQuAD(Dataset):
 	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
 		self._addenda: Optional[Addenda] = None
 		self._wd_symbols_to_q_p: Dict[int, Dict[WikiDataSymbol, str]] = {}
+		self._translations: Optional[Dict[int, QuestionFormMap]] = None  # UIDs to question form maps
 		super().__init__(dataset_locations)
 		res = req.get(self._dataset_locations[1])
 		if res.status_code != 200:
@@ -133,6 +135,10 @@ class LCQuAD(Dataset):
 	@property
 	def _default_addenda_location(self) -> Path:
 		return Path('resources', 'datasets', 'lcquad', 'addenda.json')
+
+	@property
+	def _default_translations_location(self) -> Path:
+		return Path('translations', 'lcquad')
 
 	def _obtain_dataset(self) -> None:
 		joined: RawDataset = RawDataset(tuple())
@@ -178,6 +184,41 @@ class LCQuAD(Dataset):
 					revised_key = revised_key.replace(special_symbol, '\\' + special_symbol)
 				self._addenda[add_id]['links'][revised_key] = wd_symbol
 
+	@staticmethod
+	def _translations_form_and_language(file_name: str) -> Tuple[QuestionForm, NaturalLanguage]:
+		split = re.sub('(\\.json)', '', file_name).split('_')
+		return QuestionForm(split[0]), NaturalLanguage(split[1])
+
+	def _add_translation_to_translations(
+			self,
+			uid: int,
+			form: QuestionForm,
+			lang: NaturalLanguage,
+			q: StringQuestion) -> None:
+		if uid not in self._translations.keys():
+			self._translations[uid] = {}
+		if form not in self._translations[uid].keys():
+			self._translations[uid][form] = {}
+		self._translations[uid][form][lang] = q
+
+	def _pre_process_translations(self, file_name: str, raw_translations: Dict[str, StringQuestion]) -> None:
+		if self._translations is None:
+			self._translations = {}
+		form: QuestionForm
+		lang: NaturalLanguage
+		form, lang = LCQuAD._translations_form_and_language(file_name)
+		for raw in raw_translations.items():
+			uid: int = int(raw[0])
+			q = raw[1]
+			self._add_translation_to_translations(uid, form, lang, q)
+			if form in (QuestionForm.BRACKETED_ENTITIES_RELATIONS,):
+				q_ent = q.replace(RELATION_BRACKETS[0], '').replace(RELATION_BRACKETS[1], '')
+				self._add_translation_to_translations(uid, QuestionForm.BRACKETED_ENTITIES, lang, StringQuestion(q_ent))
+			if form in (QuestionForm.BRACKETED_ENTITIES, QuestionForm.BRACKETED_ENTITIES_RELATIONS):
+				q_ent = q.replace(RELATION_BRACKETS[0], '').replace(RELATION_BRACKETS[1], '')
+				q_bare = q_ent.replace(ENTITY_BRACKETS[0], '').replace(ENTITY_BRACKETS[1], '')
+				self._add_translation_to_translations(uid, QuestionForm.NORMAL, lang, StringQuestion(q_bare))
+
 	def _obtained_dataset(self) -> RawDataset:
 		loc = Path(self._dataset_save_file())
 		if os.path.exists(self._default_addenda_location):
@@ -185,6 +226,14 @@ class LCQuAD(Dataset):
 			with open(self._default_addenda_location, 'r') as handle:
 				self._addenda = {int(kv[0]): kv[1] for kv in json.load(handle).items()}
 				self._pre_process_addenda()
+		if os.path.exists(self._default_translations_location):
+			print('[%s] Translation directory found! Attempting to integrate translations...' % (self.__class__.__name__,))
+			for dir_file in os.listdir(self._default_translations_location):
+				# We only consider JSON files as candidate translation files.
+				if re.search('(\\.json)$', dir_file):
+					print('\t(considering %s...)' % (dir_file,))
+					with open(self._default_translations_location / Path(dir_file), 'r') as handle:
+						self._pre_process_translations(dir_file, json.load(handle))
 		if self._dataset_is_already_stored():
 			print('[%s] Dataset already stored! Retrieving it...' % (self.__class__.__name__,))
 			with open(loc, 'r') as handle:
@@ -249,8 +298,8 @@ class LCQuAD(Dataset):
 				link_translations: Dict[WikiDataSymbol, str] = {}
 				uid: int = int(qa_pair.metadata['uid'])
 				for link_key, link_val in self._addenda[uid]['links'].items():
-					link_translations[WikiDataSymbol(self._wd_symbols_to_q_p[uid][link_val])] = translate_text(link_key,
-					                                                                                           language)
+					link_translations[WikiDataSymbol(self._wd_symbols_to_q_p[uid][link_val])] = \
+						translate_text(link_key, language)
 				return {'language': language.value, 'sentence': translated, 'wd_symbols': link_translations}
 			except KeyError:
 				continue  # try another form
@@ -274,18 +323,18 @@ class LCQuAD(Dataset):
 				(
 					QuestionForm.BRACKETED_ENTITIES, QuestionForm.PATTERNS_ENTITIES
 				) if q_or_a == Question else \
-					(
-						AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES
-					)
+				(
+					AnswerForm.WIKIDATA_BRACKETED_ENTITIES, AnswerForm.WIKIDATA_PATTERNS_ENTITIES
+				)
 		if add['quality'] == QualityGroup.Q_AND_P.value:
 			keys += \
 				(
 					QuestionForm.BRACKETED_ENTITIES_RELATIONS, QuestionForm.PATTERNS_ENTITIES_RELATIONS
 				) if q_or_a == Question else \
-					(
-						AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS,
-						AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS
-					)
+				(
+					AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS,
+					AnswerForm.WIKIDATA_PATTERNS_ENTITIES_RELATIONS
+				)
 		return keys
 
 	@staticmethod
@@ -489,6 +538,8 @@ class LCQuAD(Dataset):
 		if self._addenda is not None and int(raw_qa_pair['uid']) in self._addenda.keys():
 			# retrieve additional addenda information, as it's available
 			forms.update(self._question_or_answer_addenda_forms(raw_qa_pair, q_or_a))
+		if q_or_a == Question and self._translations is not None and int(raw_qa_pair['uid']) in self._translations.keys():
+			forms.update(self._translations[int(raw_qa_pair['uid'])])
 		return Question(forms) if q_or_a == Question else Answer(forms)
 
 	def _question_from_raw_qa_pair(self, raw_qa_pair: RawQAPair) -> Question:

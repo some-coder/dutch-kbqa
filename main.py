@@ -1,4 +1,5 @@
 from pre_processing.question import QuestionForm
+from pre_processing.answer import AnswerForm, FormalLanguage
 from pre_processing.translation import NaturalLanguage, translate_texts
 from pre_processing.dataset.lc_quad import LCQuAD, create_lc_quad_translations
 
@@ -8,8 +9,7 @@ from typing import Dict, Tuple
 def translate_lc_quad_bracket_entity_relation_pairs(
 		lcq: LCQuAD,
 		language: NaturalLanguage,
-		idx_range: Tuple[int, int],
-		save_file: str) -> None:
+		idx_range: Tuple[int, int]) -> None:
 	texts: Dict[int, str] = {}
 	for qa_pair in lcq.qa_pairs:
 		try:
@@ -21,13 +21,14 @@ def translate_lc_quad_bracket_entity_relation_pairs(
 			pass
 	if idx_range[0] < 0 or idx_range[1] > len(texts):
 		raise ValueError('Indices must lie between 0 and %6d.' % (len(texts),))
-	translate_texts([text for text in texts.items()][idx_range[0]:idx_range[1]], language, save_file)
+	translate_texts(
+		[text for text in texts.items()][idx_range[0]:idx_range[1]],
+		language,
+		'%s_%s.json' % (QuestionForm.BRACKETED_ENTITIES_RELATIONS.value, language.value))
 
 
 if __name__ == '__main__':
-	translate_lc_quad_bracket_entity_relation_pairs(
-		LCQuAD(),
-		NaturalLanguage.DUTCH,
-		(int(9e3), 9766),
-		'dutch-brackets.json'
-	)
+	lcq = LCQuAD()
+	for qa in lcq.qa_pairs:
+		if qa.metadata['uid'] == 19461:
+			print(qa.a.in_form(AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS, FormalLanguage.SPARQL))
