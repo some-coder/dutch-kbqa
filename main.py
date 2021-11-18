@@ -28,7 +28,5 @@ def translate_lc_quad_bracket_entity_relation_pairs(
 
 
 if __name__ == '__main__':
-	lcq = LCQuAD()
-	for qa in lcq.qa_pairs:
-		if qa.metadata['uid'] == 19461:
-			print(qa.a.in_form(AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS, FormalLanguage.SPARQL))
+	quad = LCQuAD()
+	quad.translate_and_save_addenda(NaturalLanguage.DUTCH, (int(2e4), 24854), update_progress=True)

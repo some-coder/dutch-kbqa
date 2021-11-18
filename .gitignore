@@ -2,6 +2,7 @@
 *.json
 !resources/datasets/lcquad/addenda.json
 !translations/lcquad/bracketed-entities-relations_nl.json
+!translations/lcquad/addenda_nl.json
 
 
 # JetBrains caches

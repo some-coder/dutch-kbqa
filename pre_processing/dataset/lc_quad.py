@@ -230,7 +230,7 @@ class LCQuAD(Dataset):
 			print('[%s] Translation directory found! Attempting to integrate translations...' % (self.__class__.__name__,))
 			for dir_file in os.listdir(self._default_translations_location):
 				# We only consider JSON files as candidate translation files.
-				if re.search('(\\.json)$', dir_file):
+				if re.search('(\\.json)$', dir_file) and not re.search('^(addenda)', dir_file):
 					print('\t(considering %s...)' % (dir_file,))
 					with open(self._default_translations_location / Path(dir_file), 'r') as handle:
 						self._pre_process_translations(dir_file, json.load(handle))
@@ -500,9 +500,9 @@ class LCQuAD(Dataset):
 
 		The supplemental question representations are
 		* `QuestionForm.BRACKETED_ENTITIES`,
-		* `QuestionForm.BRACKETED_ENTITIES_RELATIONS`
-		* `QuestionForm.PATTERNS_ENTITIES`
-		* `QuestionForm.PATTERNS_ENTITIES_RELATIONS`
+		* `QuestionForm.BRACKETED_ENTITIES_RELATIONS`,
+		* `QuestionForm.PATTERNS_ENTITIES`, and
+		* `QuestionForm.PATTERNS_ENTITIES_RELATIONS`.
 		Analogous extra representations exist for answers, listed in the `AnswerForm` enumeration.
 
 		:param raw: The raw QA pair to derive extra representations for.
@@ -609,6 +609,58 @@ class LCQuAD(Dataset):
 			},
 			update_progress
 		)
+
+	def translate_and_save_addenda(
+			self,
+			language: NaturalLanguage,
+			index_range: Tuple[int, int],
+			update_progress: bool = True) -> None:
+		"""
+		Translates the addenda currently loaded into LC-QuAD 2.0, and saves these to disk.
+
+		:param language: The language to translate to.
+		:param index_range: The indices of the addenda to translate. Inclusive, exclusive.
+		:param update_progress: Whether to keep the user updated on translation progress. Defaults to `True`.
+		"""
+		if self._addenda is None:
+			raise RuntimeError('No addenda found to translate!')
+		if index_range[1] > len(self._addenda):
+			raise ValueError('\tUpper index bound for addenda is %d, but you chose %d.' % (len(self._addenda), index_range[1]))
+		_confirm_access()
+		_configure_credentials()
+		save_file = Path(self._default_translations_location) / Path('_'.join(('addenda', language.value)) + '.json')
+		previous: Optional[Dict[int, AddendaEntry]] = None
+		if os.path.exists(save_file):
+			with open(save_file, 'r') as handle:
+				if update_progress:
+					print('\t[Addenda Translation] Found previous translations. Incorporating...')
+				previous = {int(uid): entry for uid, entry in json.load(handle).items()}
+		current: Dict[int, AddendaEntry] = {}
+		uid: int
+		addenda_entry: AddendaEntry
+		for index, (uid, addenda_entry) in enumerate(list(self._addenda.items())[index_range[0]:index_range[1]]):
+			translated_links: Dict[str, WikiDataSymbol] = \
+				{translate_text(s, language): sym for s, sym in addenda_entry['links'].items()}
+			current[uid] = {'links': translated_links, 'quality': addenda_entry['quality']}
+			if (index % 10) == 0 and index > 0:
+				if update_progress:
+					print(
+						'\t[Addenda Translation] %5d / %5d (%6.3lf, saving).' %
+						(index + 1, index_range[1] - index_range[0], ((index + 1) / (index_range[1] - index_range[0])) * 1e2))
+				if previous is None:
+					with open(save_file, 'w') as handle:
+						json.dump(current, handle)
+				else:
+					previous.update(current)
+					with open(save_file, 'w') as handle:
+						json.dump(previous, handle)
+		if previous is None:
+			with open(save_file, 'w') as handle:
+				json.dump(current, handle)
+		else:
+			previous.update(current)
+			with open(save_file, 'w') as handle:
+				json.dump(previous, handle)
 
 
 def _create_lc_quad_qa_pair_based_file(
