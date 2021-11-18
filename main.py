@@ -29,4 +29,9 @@ def translate_lc_quad_bracket_entity_relation_pairs(
 
 if __name__ == '__main__':
 	quad = LCQuAD()
-	quad.translate_and_save_addenda(NaturalLanguage.DUTCH, (int(2e4), 24854), update_progress=True)
+	# for qa in quad.qa_pairs:
+	# 	print('QA %d' % (qa.metadata['uid']))
+	# 	try:
+	# 		print(qa.a.in_form(AnswerForm.WIKIDATA_BRACKETED_ENTITIES, FormalLanguage.SPARQL))
+	# 	except KeyError:
+	# 		print('(not available)')
