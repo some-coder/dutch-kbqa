@@ -116,10 +116,20 @@ class LCQuAD(Dataset):
 
 	MISSING_SYMBOLS: Tuple[str] = ('n/a', 'None')
 
-	def __init__(self, dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None) -> None:
+	def __init__(
+			self,
+			dataset_locations: Optional[Tuple[Union[Path, HTTPAddress], ...]] = None,
+			brackets_sparql_preferred_language: NaturalLanguage = NaturalLanguage.ENGLISH) -> None:
+		"""
+		Constructs (and immediately initialises) an LC-QuAD 2.0 interface.
+
+		:param dataset_locations: Optional. The relative or absolute location to a dataset, or a URL.
+		:param brackets_sparql_preferred_language: The preferred language for bracketed forms in SPARQL.
+		"""
 		self._addenda: Optional[Dict[NaturalLanguage, Addenda]] = None
 		self._wd_symbols_to_q_p: Dict[int, Dict[WikiDataSymbol, str]] = {}
 		self._translations: Optional[Dict[int, QuestionFormMap]] = None  # UIDs to question form maps
+		self._brackets_pref_lang = brackets_sparql_preferred_language
 		super().__init__(dataset_locations)
 		res = req.get(self._dataset_locations[1])
 		if res.status_code != 200:
@@ -469,9 +479,7 @@ class LCQuAD(Dataset):
 			if q_or_a == Question and sub_key != NaturalLanguage.ENGLISH:
 				try:
 					nf = self._translations[int(raw['uid'])][QuestionForm.NORMAL][sub_key]
-					# print('SUCCESS')
 				except KeyError:
-					# print('\t(skipping QA %d)' % (int(raw['uid']),))
 					nf = StringQuestion('')  # Ugly, but caused by skipping certain questions due to overlaps or uncovered symbols
 			else:
 				nf = StringQuestion(raw['question']) if q_or_a == Question else StringAnswer(raw['sparql_wikidata'])
@@ -484,7 +492,7 @@ class LCQuAD(Dataset):
 				):
 				# Question is illegal; skip it.
 				return {language: None for language in add.keys()}
-		for lang in add.keys():
+		for lang in (add.keys() if q_or_a == Question else (self._brackets_pref_lang,)):
 			for link_key, link_val in add[lang]['links'].items():
 				# replace the original question or answer piece-by-piece
 				massaged: str = LCQuAD._massaged_addenda_string(link_key, Type[Question])

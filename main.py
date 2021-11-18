@@ -28,10 +28,10 @@ def translate_lc_quad_bracket_entity_relation_pairs(
 
 
 if __name__ == '__main__':
-	quad = LCQuAD()
-	# for qa in quad.qa_pairs:
-	# 	print('QA %d' % (qa.metadata['uid']))
-	# 	try:
-	# 		print(qa.a.in_form(AnswerForm.WIKIDATA_BRACKETED_ENTITIES, FormalLanguage.SPARQL))
-	# 	except KeyError:
-	# 		print('(not available)')
+	quad = LCQuAD(brackets_sparql_preferred_language=NaturalLanguage.DUTCH)
+	for qa in quad.qa_pairs:
+		print('QA %d' % (qa.metadata['uid']))
+		try:
+			print(qa.a.in_form(AnswerForm.WIKIDATA_BRACKETED_ENTITIES_RELATIONS, FormalLanguage.SPARQL))
+		except KeyError:
+			print('(not available)')
