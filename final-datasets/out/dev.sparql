@@ -1,0 +1,251 @@
+ask where brack_open q2 p1 q1 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+ask where brack_open q1 p1 q2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p2 var_1 sep_dot q1 p1 var_2 brack_close
+select var_1 var_2 where brack_open q1 p1 var_1 sep_dot q1 p2 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_1 where brack_open q2 p2 var_2 sep_dot var_2 p2 q1 sep_dot var_2 p3 var_3 sep_dot var_2 p1 var_1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+ask where brack_open q1 p1 q2 brack_close
+select var_3 var_1 where brack_open q2 p2 var_2 sep_dot var_2 p2 q1 sep_dot var_2 p1 var_3 sep_dot var_2 p3 var_1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_1 where brack_open q1 p2 var_2 sep_dot var_2 p2 q2 sep_dot var_2 p1 var_3 sep_dot var_2 p3 var_1 brack_close
+select var_3 var_1 where brack_open q1 p1 var_2 sep_dot var_2 p1 q2 sep_dot var_2 p3 var_3 sep_dot var_2 p2 var_1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+ask where brack_open q2 p1 q1 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+ask where brack_open q2 p1 q1 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_3 var_2 where brack_open q1 p2 var_1 sep_dot var_1 p2 var_2 sep_dot var_1 p1 var_3 sep_dot brack_close
+select var_3 var_2 where brack_open q1 p1 var_1 sep_dot var_1 p1 var_2 sep_dot var_1 p2 var_3 sep_dot brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 var_2 filter attr_open contains attr_open var_2 , '138 sep_dot 316' attr_close attr_close brack_close
+select var_1 where brack_open q2 p1 var_1 sep_dot var_1 p2 q1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '93 sep_dot 03' attr_close attr_close brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 q2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , 'nj' attr_close attr_close brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 q2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '10 sep_dot 14 beta 4' attr_close attr_close brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 var_2 filter attr_open contains attr_open var_2 , 'br' attr_close attr_close brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 var_2 filter attr_open contains attr_open year attr_open var_2 attr_close , '1991' attr_close attr_close brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select var_1 where brack_open q2 p1 var_1 sep_dot var_1 p2 q1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+ask where brack_open q2 p1 q1 brack_close
+ask where brack_open q2 p1 q1 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select var_1 where brack_open q2 p1 var_1 sep_dot var_1 p2 q1 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '1166033' attr_close attr_close brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 var_2 filter attr_open contains attr_open var_2 , '0 sep_dot 0' attr_close attr_close brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '11311 sep_dot 0' attr_close attr_close brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , 'жін' attr_close attr_close brack_close
+select var_1 where brack_open q2 p1 var_1 sep_dot var_1 p2 q1 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 q2 brack_close
+ask where brack_open q2 p1 q1 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 q2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 var_2 filter attr_open contains attr_open var_2 , '17236 sep_dot 0' attr_close attr_close brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '850 sep_dot 0' attr_close attr_close brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q2 p2 var_1 sep_dot var_1 p1 q1 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , 'зша' attr_close attr_close brack_close
+ask where brack_open q2 p1 q1 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '0 sep_dot 367' attr_close attr_close brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '521 sep_dot 1' attr_close attr_close brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '♂' attr_close attr_close brack_close
+select var_1 where brack_open q2 p1 var_1 sep_dot var_1 p2 q1 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '77407 sep_dot 0' attr_close attr_close brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '8918653' attr_close attr_close brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '9000 sep_dot 0' attr_close attr_close brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 var_2 filter attr_open contains attr_open year attr_open var_2 attr_close , '1948' attr_close attr_close brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p10 q2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , 'мужской' attr_close attr_close brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 q2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '6000 sep_dot 0' attr_close attr_close brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '2' attr_close attr_close brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p10 q2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , 'popularity of name james sep_dot png' attr_close attr_close brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , 'europa-parlamentets og rådets forordning attr_open ef attr_close nr sep_dot 1272/2008 af 16 sep_dot december 2008 om klassificering , mærkning og emballering af stoffer og blandinger og om ændring og ophævelse af direktiv 67/548/eøf og 1999/45/ef og om ændring af forordning attr_open ef attr_close nr sep_dot 1907/2006' attr_close attr_close brack_close
+select var_1 where brack_open q2 p1 var_1 sep_dot var_1 p2 q1 brack_close
+ask where brack_open q2 p1 q1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 q2 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '215000 sep_dot 0' attr_close attr_close brack_close
+select var_1 where brack_open q2 p1 var_1 sep_dot var_1 p2 q1 brack_close
+select attr_open count attr_open var_2 attr_close as var_1 attr_close brack_open q1 p1 var_2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 var_2 filter attr_open contains attr_open var_2 , '2--768' attr_close attr_close brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p10 q2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p10 q2 brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 q2 brack_close
+select var_1 where brack_open q1 p1 var_1 sep_dot var_1 p2 var_2 filter attr_open contains attr_open var_2 , 'e' attr_close attr_close brack_close
+select var_1 where brack_open q1 p2 var_1 sep_dot var_1 p1 q2 brack_close
