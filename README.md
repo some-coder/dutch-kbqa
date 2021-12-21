@@ -7,9 +7,11 @@ base question answering (or KBQA for short).
 
 Ensure you have the following:
 
-- A computer with a UNIX terminal.
-- A GitHub account with SSH access to it.
-- Python 3 with the `venv` package installed.
+1. A computer with:
+	1. a UNIX terminal, and
+	2. (recommended) a GPU that can be found by TensorFlow and PyTorch.
+2. A GitHub account with SSH access to it.
+3. Python 3 with the `venv` package installed.
 
 First, download the repository and navigate to `development`.
 
@@ -24,19 +26,30 @@ git pull origin development
 Then set up Python.
 
 ```shell
+cd model
 python3 -m venv .venv
 source .venv/bin/activate
+pip3 install wheel  # to avoid some problems
 pip3 install -r requirements.txt
-pip3 install -e .
+chmod +x fine-tune.sh  # you might need sudo capabilities for this
 ```
 
 Then run the project.
 
 ```shell
-python3 main.py
+./fine-tune.sh
 ```
 
-## View the paper on which this work is based
+This will train the BERT encoder-decoder model on the Dutch KBQA dataset. On Peregrine, this will take around
+1.5 days, so be sure you want to wait this long if you run this on your local PC.
 
-See [this paper](https://arxiv.org/abs/2108.03509).
+## Credits
 
+See [this paper (Cui et al. 2021)](https://arxiv.org/abs/2108.03509).
+
+For the code, we rely on [(multilingual) BERT (Devlin et al. 2018)](https://arxiv.org/abs/1810.04805) and
+the code for the [SPBERT model (Tran et al. 2021)](https://arxiv.org/abs/2106.09997) (which we adapt for the Dutch
+KBQA task).
+
+Lastly, we thank the Center for Information Technology (CIT) of the University of Groningen for their support and for
+providing access to the _Peregrine_ high performance computing cluster.
