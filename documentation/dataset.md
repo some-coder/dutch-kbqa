@@ -1,6 +1,6 @@
 # Download the Dataset Used in this Project
 
-This project begins by deriving a shorter, Dutch variant of the Large-Scale Complex Question-Answering Dataset 2.0 (LC-QuAD 2.0). LC-QuAD 2.0 was introduced by <a href="ihttps://doi.org/10.1007/978-3-030-30796-7_5">Dubey, Banerjee, Abdelkawi and Lehmann in 2019</a>, and can be found <a href="https://figshare.com/projects/LCQuAD_2_0/62270">on Figshare</a>.
+This project begins by deriving a shorter, Dutch variant of the Large-Scale Complex Question-Answering Dataset 2.0 (LC-QuAD 2.0). LC-QuAD 2.0 was introduced by <a href="https://doi.org/10.1007/978-3-030-30796-7_5">Dubey, Banerjee, Abdelkawi and Lehmann in 2019</a>, and can be found <a href="https://figshare.com/projects/LCQuAD_2_0/62270">on Figshare</a>.
 
 For your convenience, however, the shell script `download.sh` may be used to automatically download the relevant data into the appropriate locations. Before executing this script, make sure you have taken the following two steps:
 

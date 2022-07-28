@@ -78,7 +78,7 @@ After the creation of the 'Cloud Translation API' service account, you should ha
 
 ## Step 6: Enable billing for the project
 
-Finally, you need to enable billing on the project. Realise that translating the LC-QuAD 2.0 dataset into a Dutch version costs money; you use Google Cloud's APIs. Hence, it may be necessary to top up the primary payment method used for the project. Also see the note below.
+Finally, you need to enable billing on the project. Realise that translating the LC-QuAD 2.0 dataset into a Dutch version costs money; you use Google Cloud's APIs. Hence, it may be necessary to top up the primary payment method used for the project. Also see note 1 below.
 
 To enable billing for the project:
 
