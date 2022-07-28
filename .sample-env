@@ -1,0 +1,10 @@
+# Make a copy of this file. Then, in that copy, fill in your details:
+#
+# ```sh
+# cp .sample-env .env  # Must always be called `.env`!
+# nano .env  # Edit your file.
+# ```
+
+# Google Cloud Platform
+GOOGLE_APPLICATION_CREDENTIALS=".service-account-key.json"  # name of the service account key file
+
