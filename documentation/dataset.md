@@ -14,5 +14,5 @@ chmod +x download.sh  # allow the program to execute
 (set -a .env && source .env && ./download.sh)
 ```
 
-**Note.** Is `wget` not installed? You can easily download it. For instance, on Ubuntu 20.04 LTS, use `sudo apt install wget`.
+**Note.** Is `wget` not installed? Download it on your platform. On Ubuntu 20.04 LTS, execute `sudo apt install wget` in a terminal. On macOS, using <a href="https://brew.sh">the Homebrew package manager</a>, execute `brew install wget` in a terminal.
 
