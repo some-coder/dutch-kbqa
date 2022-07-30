@@ -12,11 +12,18 @@ fi
 FIGSHARE_BASE_URL="https://figshare.com/ndownloader/files"
 TRAIN_FILE_ID="15738824"
 TEST_FILE_ID="15738818"
-DATASET_DIRECTORY="resources"
+DATASET_DIRECTORY="${PWD}/resources"
 TRAIN_FILE_NAME="train.json"
 TEST_FILE_NAME="test.json"
 
-mkdir "$DATASET_DIRECTORY"
+if [ -d "$DATASET_DIRECTORY" ] ; then
+	:
+else
+	mkdir "$DATASET_DIRECTORY"
+	echo "Created directory \"$DATASET_DIRECTORY\"."
+fi
+
+echo -n "Downloading datasets from \"$FIGSHARE_BASE_URL\"... "
 wget --no-check-certificate \
      --quiet \
      "$FIGSHARE_BASE_URL/$TRAIN_FILE_ID" \
@@ -25,4 +32,5 @@ wget --no-check-certificate \
      --quiet \
      "$FIGSHARE_BASE_URL/$TEST_FILE_ID" \
      -O "$DATASET_DIRECTORY/$TEST_FILE_NAME"
+echo "Done."
 
