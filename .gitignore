@@ -5,6 +5,15 @@ resources/
 .env*
 .*.json
 
+# File systems
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.code-workspace
+
 # Python
 .venv
 __pycache__/
@@ -15,4 +24,8 @@ eggs/
 wheels/
 *.egg-info/
 *.egg
+
+# C++
+vcpkg/
+build/
 
