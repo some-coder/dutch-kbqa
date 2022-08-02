@@ -1,10 +1,9 @@
-# Make a copy of this file. Then, in that copy, fill in your details:
-#
-# ```sh
-# cp .sample-env .env  # Must always be called `.env`!
-# nano .env  # Edit your file.
-# ```
-
 # Google Cloud Platform
-GOOGLE_APPLICATION_CREDENTIALS=".service-account-key.json"  # name of the service account key file
+GOOGLE_APPLICATION_CREDENTIALS="${PWD}/.service-account-key.json"  # name of the service account key file
+
+# Translation
+TRANSLATE_SAVE_FREQ=50  # some integer above 1
+
+# Auxiliary variables
+REFERENCE_TRANSLATED_FILE="/path/to/train_or_test_nl.json"
 
