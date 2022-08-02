@@ -12,7 +12,7 @@ file(GLOB_RECURSE SOURCES_VAR "source/*.cpp")
 message("Obtained the following source files: \"${SOURCES_VAR}\".")
 
 add_executable(main "${SOURCES_VAR}")
-target_include_directories(main PRIVATE "include/")  # Ending `/` OK?
+target_include_directories(main PRIVATE "include/")
 
 find_package(utf8cpp CONFIG REQUIRED)
 target_link_libraries(main PRIVATE utf8cpp)
