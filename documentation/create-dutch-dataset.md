@@ -59,7 +59,7 @@ Finally, build the project using <a href="https://cmake.org">CMake</a>:
 mkdir build/
 cmake -B build/ \
       -S . \
-      -DCMAKE_TOOLCHAIN_FILE="${PWD}/source/cpp-ds-create/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      -DCMAKE_TOOLCHAIN_FILE="${PWD}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 cmake --build build/  # this may take a while
 ```
 
