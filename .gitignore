@@ -1,5 +1,6 @@
 # Resources
-resources/
+resources/*
+!resources/error_replacements_*.json
 
 # Configuration
 .env*
