@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <stdexcept>
+#include <algorithm>
 #include "utilities.hpp"
 
 using namespace DutchKBQADSCreate;
