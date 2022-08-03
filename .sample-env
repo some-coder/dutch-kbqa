@@ -1,9 +1,26 @@
 # Google Cloud Platform
 GOOGLE_APPLICATION_CREDENTIALS="${PWD}/.service-account-key.json"  # name of the service account key file
 
+# General
+SPLIT="train"  # or "test"
+
 # Translation
 TRANSLATE_SAVE_FREQ=50  # some integer above 1
-
-# Auxiliary variables
-REFERENCE_TRANSLATED_FILE="/path/to/train_or_test_nl.json"
+# `REFERENCE_TRANSLATED_FILE` should be a relative or absolute path to
+# a JSON file. This file should store a translation of an original
+# LC-QuAD 2.0 dataset split, such as one in Dutch (`${SPLIT}_nl.json`).
+# This reference file can then be used to determine how much a
+# just-generated translation deviates from the reference. You can
+# perform such a 'deviation test' by executing the following command,
+# only, of course, after you have made a filled-in copy of this
+# `.sample-env`:
+# 
+# ```sh
+# (set -a .env && source .env && ./shell-scripts/validate.sh)
+# ```
+#
+# Testing for  deviation may be useful, as Google Cloud Translate seems
+# to change their neural machine translation (NMT) models from time to
+# time, affecting reproducibility.
+REFERENCE_TRANSLATED_FILE="/path/to/translation.json"
 

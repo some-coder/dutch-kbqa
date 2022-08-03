@@ -41,6 +41,7 @@ namespace DutchKBQADSCreate {
                                      const std::string &file_name);
     void append_json_to_resources_file(const Json::Value &json,
                                        const std::string &file_name);
+    std::string string_with_regex_characters_escaped(const std::string &non_escaped);
 }
 
 #endif  /* UTILITIES_HPP */

@@ -5,6 +5,8 @@
 #include "utilities.hpp"
 #include "replace-special-symbols.hpp"
 
+#include <iostream>
+
 using namespace DutchKBQADSCreate;
 
 /**
@@ -44,9 +46,9 @@ std::string string_with_symbols_replaced(std::string str,
          it != std::sregex_iterator();
          ++it) {
         /* iterate over all symbols to replace */
-        std::string matched_symbol = it->str();
+        std::string matched_symbol = string_with_regex_characters_escaped(it->str());
         std::regex matched_symbol_query("(" + matched_symbol + ")");
-        replaced = std::regex_replace(replaced, matched_symbol_query, replace_map.at(it->str()));
+        replaced = std::regex_replace(replaced, matched_symbol_query, replace_map.at(matched_symbol));
     }
     return replaced;
 }
@@ -166,8 +168,10 @@ std::string string_with_html_character_entity_replaced(const std::string &str,
  */
 std::string string_with_html_numeric_entity_replaced(const std::string &str,
                                                      const std::string &entity) {
-    std::smatch code_point_match;
-    std::regex_search(str, code_point_match, code_point_query);
+    std::smatch code_point_match;  /* Stores only the four digits (U+0000) of the entity. */
+    std::regex_search(entity,
+                      code_point_match,
+                      code_point_query);
     std::string referent { static_cast<char>(std::stoi(code_point_match.str())) };
     return std::regex_replace(str,
                               std::regex("(" + entity + ")"),
@@ -231,9 +235,9 @@ void DutchKBQADSCreate::replace_special_symbols_in_resources_file(const po::vari
     std::string save_file_name = vm["save-file-name"].as<std::string>();
     Json::Value json = json_loaded_from_resources_file(load_file_name);
     std::map<std::string, std::string> replace_map {
-            { "_", " " },
-            { "{", "" },
-            { "}", "" }
+            {string_with_regex_characters_escaped("_"), " " },
+            {string_with_regex_characters_escaped("{"), "" },
+            {string_with_regex_characters_escaped("}"), "" }
     };
     json = json_with_symbols_replaced(json, replace_map);
     json = json_with_html_entities_replaced(json);

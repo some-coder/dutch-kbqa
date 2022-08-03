@@ -84,3 +84,40 @@ void DutchKBQADSCreate::append_json_to_resources_file(const Json::Value &json,
     }
     save_json_to_resources_file(updated_file_json, file_name);
 }
+
+/* The following characters are reserved in regular expressions. */
+const std::vector<char> regex_characters_to_escape {
+    '.',
+    '(', ')',
+    '[', ']',
+    '|',
+    '{', '}',
+    '*',
+    '+',
+    '-',
+    '?',
+    '^',
+    '$',
+    '/',
+    '\\'
+};
+
+/**
+ * @brief Returns the input string, but with any reserved RegEx characters
+ *   replaced.
+ *
+ * @param non_escaped The original, non-escaped string.
+ * @return The string with any RegEx-reserved characters escaped.
+ */
+std::string DutchKBQADSCreate::string_with_regex_characters_escaped(const std::string &non_escaped) {
+    std::string escapes_added;
+    for (const auto &c : non_escaped) {
+        if (*std::find(regex_characters_to_escape.begin(),
+                       regex_characters_to_escape.end(),
+                       c) == c) {
+            escapes_added += "\\";
+        }
+        escapes_added += c;
+    }
+    return escapes_added;
+}

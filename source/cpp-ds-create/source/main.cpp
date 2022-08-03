@@ -16,7 +16,6 @@ using namespace DutchKBQADSCreate;
  * @return int An exit signal. `0` on success; non-zero on failure.
  */
 int main(int argc, char *argv[]) {
-    std::cout << DutchKBQADSCreate::resources_dir << std::endl;
     po::variables_map vm = dutch_kbqa_variables_map(argc, argv);
     execute_dutch_kbqa_subprogram(vm);
     return EXIT_SUCCESS;
