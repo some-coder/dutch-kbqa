@@ -65,5 +65,15 @@ cmake --build build/  # this may take a while
 
 ### Step 2.2: Post-process the dataset
 
-(Information to be supplied later.)
+Begin by replacing special symbols in the translated training and testing dataset splits:
+
+```sh
+# Edit `.env`: Set `$SPLIT` to `'train'`.
+(set -a .env && source .env && ./shell-scripts/replace-special-symbols.sh)
+
+# Edit `.env`: Set `$SPLIT` to `'test'`.
+(set -a .env && source .env && ./shell-scripts/replace-special-symbols.sh)
+```
+
+(More to follow later.)
 
