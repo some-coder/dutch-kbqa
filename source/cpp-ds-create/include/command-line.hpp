@@ -17,6 +17,6 @@ namespace DutchKBQADSCreate {
     };
     po::variables_map dutch_kbqa_variables_map(int argc, char *argv[]);
     void execute_dutch_kbqa_subprogram(po::variables_map &vm);
-};
+}
 
 #endif  /* COMMAND_LINE_HPP */

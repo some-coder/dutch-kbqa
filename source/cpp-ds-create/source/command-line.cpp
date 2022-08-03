@@ -1,7 +1,8 @@
 /* Symbols for parsing standard input at the command-line. */
 
+#include <stdexcept>
 #include "command-line.hpp"
-#include <iostream>
+#include "replace-special-symbols.hpp"
 
 using namespace DutchKBQADSCreate;
 
@@ -17,7 +18,7 @@ using namespace DutchKBQADSCreate;
  * @param argv An array of character pointers. The first entry contains the
  *   name of the program; all successive entries contain command-line
  *   arguments.
- * @return po::variables_map The variables map.
+ * @return The variables map.
  */
 po::variables_map DutchKBQADSCreate::dutch_kbqa_variables_map(int argc, char *argv[]) {
     po::options_description desc(std::string("Post-process LC-QuAD 2.0 ") +
@@ -29,7 +30,7 @@ po::variables_map DutchKBQADSCreate::dutch_kbqa_variables_map(int argc, char *ar
         ("split", po::value<std::string>(), "The dataset split to work on.")
         ("language",
          po::value<std::string>(),
-         "The language to translate into.")
+         "The natural language of the file's contents.")
         ("load-file-name",
          po::value<std::string>(),
          "The name of the file to load from.")
@@ -50,5 +51,18 @@ po::variables_map DutchKBQADSCreate::dutch_kbqa_variables_map(int argc, char *ar
  *   run, and in what manner.
  */
 void DutchKBQADSCreate::execute_dutch_kbqa_subprogram(po::variables_map &vm) {
-    std::cout << "To be implemented." << std::endl;
+    if (vm.count("task") == 0) {
+        throw std::invalid_argument(std::string(R"(The "-task" ("-t") flag )") +
+                                    "is required.");
+    }
+    auto it = string_to_task_type_map.find(vm["task"].as<std::string>());
+    assert(it != string_to_task_type_map.end());
+    TaskType task_type = it->second;
+    if (task_type == TaskType::REPLACE_SPECIAL_SYMBOLS) {
+        replace_special_symbols_in_resources_file(vm);
+    } else {
+        throw std::invalid_argument(std::string("Task type \"") +
+                                    vm["task"].as<std::string>() +
+                                    "\" is not supported.");
+    }
 }
