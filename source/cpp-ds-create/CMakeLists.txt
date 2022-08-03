@@ -36,7 +36,8 @@ if (("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux") OR
 elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
 	# Assume Clang.
 	target_compile_options(main PUBLIC "-std=c++17"
-	                                   "-Weverything"
+	                                   "-Wall"
+	                                   "-pedantic"
 	                                   "-g")
 elseif(("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows") OR
        ("${CMAKE_SYSTEM_NAME}" STREQUAL "MSYS"))

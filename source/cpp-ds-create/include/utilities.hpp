@@ -9,7 +9,11 @@
 #include <json/json.h>
 
 namespace DutchKBQADSCreate {
-    namespace fs = std::filesystem;
+    #if __APPLE__
+        namespace fs = std::__fs::filesystem;
+    #else
+        namespace fs = std::filesystem;
+    #endif
     enum NaturalLanguage {
         ENGLISH,
         DUTCH
