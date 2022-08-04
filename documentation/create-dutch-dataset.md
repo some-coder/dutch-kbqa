@@ -65,14 +65,18 @@ cmake --build build/  # this may take a while
 
 ### Step 2.2: Post-process the dataset
 
-Begin by replacing special symbols in the translated training and testing dataset splits:
+Perform each of the following for both the 'train' and 'test dataset splits of LC-QuAD 2.0. You can switch between them by changing the `$SPLIT` environment variable in your `.env` file, and re-running the shell scripts.
+
+First, replace various special symbols:
 
 ```sh
-# Edit `.env`: Set `$SPLIT` to `'train'`.
 (set -a .env && source .env && ./shell-scripts/replace-special-symbols.sh)
+```
 
-# Edit `.env`: Set `$SPLIT` to `'test'`.
-(set -a .env && source .env && ./shell-scripts/replace-special-symbols.sh)
+Second, replace `ERROR`s by proper references:
+
+```sh
+(set -a .env && source .env && ./shell-scripts/replace-errors.sh)
 ```
 
 (More to follow later.)
