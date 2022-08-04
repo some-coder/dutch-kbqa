@@ -3,10 +3,12 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from dutch_kbqa_py_ds_create.lc_quad_2_0 import RESOURCES_DIR, Split
-from dutch_kbqa_py_ds_create.translate import \
+from dutch_kbqa_py_ds_create.tasks.translate import \
     translate_complete_dataset_split_questions
-from dutch_kbqa_py_ds_create.utilities import NaturalLanguage, \
-                                              ROOT_DIR, validate_against_reference
+from dutch_kbqa_py_ds_create.tasks.validate import \
+    validate_against_reference
+from dutch_kbqa_py_ds_create.tasks.replace_errors import replace_errors
+from dutch_kbqa_py_ds_create.utilities import NaturalLanguage 
 from enum import Enum
 from typing import List, Optional, TypedDict
 
@@ -44,6 +46,7 @@ class TaskType(Enum):
     """A type of task to perform."""
     TRANSLATE = 'translate'
     VALIDATE = 'validate'
+    REPLACE_ERRORS = 'replace-errors'
 
 
 def dutch_kbqa_python_dataset_creation_argument_parser() -> ArgumentParser:
@@ -66,6 +69,9 @@ def dutch_kbqa_python_dataset_creation_argument_parser() -> ArgumentParser:
                         type=str,
                         help='The language to translate into.',
                         choices=[lang.value for lang in NaturalLanguage])
+    parser.add_argument('--load_file_name',
+                        type=str,
+                        help='The name of the file to load from.')
     parser.add_argument('--save_file_name',
                         type=str,
                         help='The name of the file to save to.')
@@ -90,6 +96,7 @@ class DutchKBQADSCreationDict(TypedDict):
     task: TaskType
     split: Optional[Split]
     language: Optional[NaturalLanguage]
+    load_file_name: Optional[Path]
     save_file_name: Optional[Path]
     save_frequency: Optional[int]
     reference_file_name: Optional[Path]
@@ -109,6 +116,8 @@ def dutch_kbqa_dataset_creation_namespace_to_dict(parser: ArgumentParser) -> \
             'split': ns.split if 'split' in ns else None,
             'language': NaturalLanguage(ns.language)
                         if ns.language is not None else None,
+            'load_file_name': RESOURCES_DIR / ns.load_file_name
+                              if ns.load_file_name is not None else None,
             'save_file_name': RESOURCES_DIR / ns.save_file_name
                               if ns.save_file_name is not None else None,
             'save_frequency': ns.save_frequency
@@ -136,6 +145,11 @@ def act_on_dutch_kbqa_dataset_creation_dict(di: DutchKBQADSCreationDict) -> \
         result = validate_against_reference(proposal_file=di['save_file_name'],
                                             reference_file=di['reference_file_name'])
         print('Are the same? %s.' % (result,))
+    elif di['task'] == TaskType.REPLACE_ERRORS:
+        replace_errors(di['load_file_name'],
+                       di['save_file_name'],
+                       di['split'],
+                       di['language'])
     else:
         raise NotImplementedError(f'Task type \'{di["task"]}\' not yet ' +
                                   'supported.')

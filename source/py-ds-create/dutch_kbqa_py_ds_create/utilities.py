@@ -1,10 +1,10 @@
 """Various utility symbols."""
 
-import json
 import os
-import sys
+import json
 from pathlib import Path
 from enum import Enum
+from typing import Union, Literal, Dict, Any, Optional
 
 
 # Absolute file system path to the package's root (base) directory.
@@ -25,57 +25,54 @@ def overwritably_print(text: str) -> None:
     
     :param text: The text to print.
     """
-#    sys.stdout.write(text)
-#    sys.stdout.flush()
     print(text, flush=True)
 
 
-def validate_against_reference(proposal_file: Path,
-                               reference_file: Path) -> bool:
-    """Determines whether JSON file `proposal_file`'s key-values
-    match those of `reference_file`'s.
-    
-    We only check for the keys existing in `proposal_file`; keys in
-    `reference_file` but not in `proposal_file` are ignored.
+FileNotFoundReaction = Union[Literal['throw-error'],
+                             Literal['return-none']]
 
-    If any inconsistencies are encountered, these are printed to standard
-    output.
 
-    :param proposal_file: The JSON file that should be(come) valid.
-    :param reference_file: The JSON file that serves as 'ground truth'.
-    :returns: Whether `proposal_file` is valid with respect to
-        `reference_file`.
+def json_loaded_from_disk(location: Path,
+                          upon_file_not_found: FileNotFoundError) -> \
+        Optional[Dict[str, Any]]:
+    """Returns the contents of `location`, interpreted as JSON.
+
+    :param location: An absolute or relative file system location.
+    :param upon_file_not_found: The action to perform when the file can't be
+        found. `'throw-error'` throws an exception; `'return-none'` simply
+        returns `None`.
+    :returns: The JSON data, or `None` if the file couldn't be found and
+        `upon_file_not_found` was set to `'return-none'`.
+    :throws: `RuntimeError` when anything abnormal happens.
     """
     try:
-        with open(proposal_file, 'r') as handle:
-            prp = json.load(handle)
+        with open(location, 'r') as handle:
+            contents = json.load(handle)
+            assert(type(contents) == dict)
+            return contents
     except FileNotFoundError:
-        raise RuntimeError(f'Proposal file \'{proposal_file}\' not found!')
+        if upon_file_not_found == 'throw-error':
+            raise RuntimeError(f'File \'{location.resolve()}\' was not found!')
+        else:
+            return None
     except IOError as error:
         raise RuntimeError(f'An IO error occurred: \'{error}\'.')
+    except AssertionError:
+        raise RuntimeError(f'File \'{location.resolve()}\' isn\'t an object!')
+
+
+def save_json_to_disk(contents: Dict[str, Any],
+                      location: Path) -> None:
+    """Saves the `contents` as JSON to disk, at the specified `location`.
+
+    :param contents: The contents to save to disk.
+    :param location: An absolute or relative file system location to save to.
+    :throws: `RuntimeError` when anything abnormal happens.
+    """
     try:
-        with open(reference_file, 'r') as handle:
-            ref = json.load(handle)
+        with open(location, 'w') as handle:
+            json.dump(contents, handle)
     except FileNotFoundError:
-        raise RuntimeError(f'Reference file \'{reference_file}\' not found!')
+        raise RuntimeError(f'File \'{location.resolve()}\' was not found!')
     except IOError as error:
         raise RuntimeError(f'An IO error occurred: \'{error}\'.')
-    assert isinstance(prp, dict)
-    assert isinstance(ref, dict)
-    different_count = 0
-    for key in prp.keys():
-        prp_val = prp[key]
-        ref_val = ref[key]
-        if prp_val != ref_val:
-            print('%5s: (pr.)  \'%s\',\n%s(ref.) \'%s\'.' %
-                  (int(key),
-                   prp_val,
-                   ' ' * (5 + len(': ')),
-                   ref_val))
-            different_count += 1
-    if different_count > 0:
-        print('%d / %d (%6.2lf%%) of entries were different.' %
-              (different_count,
-               len(prp),
-               (different_count / len(prp)) * 100.))
-    return different_count == 0

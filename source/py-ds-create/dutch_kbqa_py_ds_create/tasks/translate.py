@@ -2,7 +2,6 @@
 
 import six
 import json
-import os
 from dotenv import load_dotenv
 from google.cloud import translate_v2 as translate
 from pathlib import Path
@@ -11,8 +10,10 @@ from dutch_kbqa_py_ds_create.lc_quad_2_0 import LCQuADQAPair, \
 												dataset_split, \
                                                 question_type_for_translation
 from dutch_kbqa_py_ds_create.utilities import NaturalLanguage, \
-                                              overwritably_print
-from typing import Union, List, Dict, Set
+                                              overwritably_print, \
+											  json_loaded_from_disk, \
+                                              save_json_to_disk
+from typing import Union, List, Dict, Set, cast
 
 
 def translated_text(text: Union[str, six.binary_type],
@@ -127,13 +128,11 @@ def trl_questions_from_disk(file: Path) -> TranslatedLCQuADQuestions:
 		exist.
 	:throws `RuntimeError` if `file` somehow couldn't be read from.
 	"""
-	try:
-		with open(file, 'r') as handle:
-			return json.load(handle)
-	except FileNotFoundError:
-		return {}
-	except IOError as error:
-		raise RuntimeError(f'An IO error occurred: \'{error}\'.')
+	contents = json_loaded_from_disk(file,
+	                                 upon_file_not_found='return-none')
+	return {} \
+	       if contents is None else \
+	       cast(TranslatedLCQuADQuestions, contents)
 
 
 def save_trl_questions_to_disk(trl_questions: TranslatedLCQuADQuestions,
@@ -146,13 +145,7 @@ def save_trl_questions_to_disk(trl_questions: TranslatedLCQuADQuestions,
 	:param file: The file to which translated questions must be saved.
 	:throws: `RuntimeError` when `file` could somehow not be written to.
 	"""
-	try:
-		with open(file, 'w') as handle:
-			json.dump(trl_questions, handle)
-	except FileNotFoundError:
-		raise RuntimeError(f'File \'{file.resolve()}\' was not found!')
-	except IOError as error:
-		raise RuntimeError(f'An IO error occurred: \'{error}\'.')
+	save_json_to_disk(trl_questions, file)
 
 
 def question_uid_partition(ds_split: List[LCQuADQAPair],
