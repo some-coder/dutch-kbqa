@@ -70,6 +70,17 @@ Json::Value json_from_question_entities_properties_map(const q_ent_prp_map &m) {
 }
 
 /**
+ * @brief Returns the name of the targeted questions-to-entities-and-properties
+ *   map.
+ *
+ * @param split The LC-QuAD 2.0 dataset split to target.
+ * @return The file name. Without `.json` file extension.
+ */
+std::string question_entities_properties_map_file_name(const LCQuADSplit &split) {
+    return string_from_lc_quad_split(split) + "-entities-properties-map";
+}
+
+/**
  * @brief Saves the question-to-entities-and-properties map `m` to disk.
  *
  * @param m The map to save to disk. The file will be saved in the project
@@ -79,11 +90,22 @@ Json::Value json_from_question_entities_properties_map(const q_ent_prp_map &m) {
  */
 void DutchKBQADSCreate::save_question_entities_properties_map(const q_ent_prp_map &m,
                                                               const LCQuADSplit &split) {
+    create_directory_if_absent(supplements_dir);
     Json::Value json = json_from_question_entities_properties_map(m);
-    const std::string file_name = string_from_lc_quad_split(split) +
-                                  "_ent_prp_map";
-    save_json_to_resources_file(json,
-                                file_name);
+    save_json_to_dataset_file(json,
+                              supplements_dir /
+                              question_entities_properties_map_file_name(split));
+}
+
+/**
+ * @brief Returns the questions-to-entities-and-properties map, loaded from disk.
+ *
+ * @param split The LC-QuAD 2.0 dataset split to load the map of.
+ * @return The map.
+ */
+Json::Value DutchKBQADSCreate::loaded_question_entities_properties_map(const LCQuADSplit &split) {
+    return json_loaded_from_dataset_file(supplements_dir /
+                                         question_entities_properties_map_file_name(split));
 }
 
 /**
@@ -97,9 +119,11 @@ void DutchKBQADSCreate::generate_question_entities_properties_map(const po::vari
     if (vm.count("split") == 0) {
         throw std::invalid_argument(std::string(R"(The "--split" flag is required.)"));
     }
-    const std::string split_str = vm["split"].as<std::string>();
-    const LCQuADSplit split = string_to_lc_quad_split_map.at(split_str);
-    const Json::Value ds_split = json_loaded_from_resources_file(split_str);
+    const std::string ds_split_file_name = vm["split"].as<std::string>() +
+                                           "-" +
+                                           string_from_natural_language(NaturalLanguage::ENGLISH);
+    const LCQuADSplit split = string_to_lc_quad_split_map.at(vm["split"].as<std::string>());
+    const Json::Value ds_split = json_loaded_from_dataset_file(ds_split_file_name);
     const q_ent_prp_map m = question_entities_properties_map(ds_split);
     save_question_entities_properties_map(m, split);
 }

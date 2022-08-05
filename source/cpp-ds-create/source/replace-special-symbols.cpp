@@ -223,7 +223,7 @@ Json::Value DutchKBQADSCreate::json_with_html_entities_replaced(Json::Value json
  * @param vm The variables map with which to determine which file to replace
  *   special symbols in, and where to save results to.
  */
-void DutchKBQADSCreate::replace_special_symbols_in_resources_file(const po::variables_map &vm) {
+void DutchKBQADSCreate::replace_special_symbols_in_dataset_file(const po::variables_map &vm) {
     if (vm.count("load-file-name") == 0) {
         throw std::invalid_argument(std::string(R"(The "--load-file-name" flag )") +
                                     "is required.");
@@ -233,7 +233,7 @@ void DutchKBQADSCreate::replace_special_symbols_in_resources_file(const po::vari
     }
     std::string load_file_name = vm["load-file-name"].as<std::string>();
     std::string save_file_name = vm["save-file-name"].as<std::string>();
-    Json::Value json = json_loaded_from_resources_file(load_file_name);
+    Json::Value json = json_loaded_from_dataset_file(load_file_name);
     std::map<std::string, std::string> replace_map {
             {string_with_regex_characters_escaped("_"), " " },
             {string_with_regex_characters_escaped("{"), "" },
@@ -241,5 +241,5 @@ void DutchKBQADSCreate::replace_special_symbols_in_resources_file(const po::vari
     };
     json = json_with_symbols_replaced(json, replace_map);
     json = json_with_html_entities_replaced(json);
-    save_json_to_resources_file(json, save_file_name);
+    save_json_to_dataset_file(json, save_file_name);
 }

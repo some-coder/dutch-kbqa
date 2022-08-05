@@ -12,14 +12,14 @@ fi
 FIGSHARE_BASE_URL="https://figshare.com/ndownloader/files"
 TRAIN_FILE_ID="15738824"
 TEST_FILE_ID="15738818"
-DATASET_DIRECTORY="${PWD}/resources"
-TRAIN_FILE_NAME="train.json"
-TEST_FILE_NAME="test.json"
+DATASET_DIRECTORY="${PWD}/resources/dataset"
+TRAIN_FILE_NAME="train-en.json"
+TEST_FILE_NAME="test-en.json"
 
 if [ -d "$DATASET_DIRECTORY" ] ; then
 	:
 else
-	mkdir "$DATASET_DIRECTORY"
+	mkdir -p "$DATASET_DIRECTORY"
 	echo "Created directory \"$DATASET_DIRECTORY\"."
 fi
 

@@ -2,7 +2,7 @@
 
 from argparse import ArgumentParser
 from pathlib import Path
-from dutch_kbqa_py_ds_create.lc_quad_2_0 import RESOURCES_DIR, Split
+from dutch_kbqa_py_ds_create.lc_quad_2_0 import DATASET_DIR, Split
 from dutch_kbqa_py_ds_create.tasks.translate import \
     translate_complete_dataset_split_questions
 from dutch_kbqa_py_ds_create.tasks.validate import \
@@ -116,9 +116,9 @@ def dutch_kbqa_dataset_creation_namespace_to_dict(parser: ArgumentParser) -> \
             'split': ns.split if 'split' in ns else None,
             'language': NaturalLanguage(ns.language)
                         if ns.language is not None else None,
-            'load_file_name': RESOURCES_DIR / ns.load_file_name
+            'load_file_name': DATASET_DIR / ns.load_file_name
                               if ns.load_file_name is not None else None,
-            'save_file_name': RESOURCES_DIR / ns.save_file_name
+            'save_file_name': DATASET_DIR / ns.save_file_name
                               if ns.save_file_name is not None else None,
             'save_frequency': ns.save_frequency
                               if ns.save_frequency is not None else None,

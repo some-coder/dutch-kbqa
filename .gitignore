@@ -1,6 +1,8 @@
 # Resources
-resources/*
-!resources/error_replacements_*.json
+resources/**
+!resources/**/
+!resources/dataset/supplements/train-nl-error-replacements.json
+!resources/dataset/supplements/test-nl-error-replacements.json
 
 # Configuration
 .env*

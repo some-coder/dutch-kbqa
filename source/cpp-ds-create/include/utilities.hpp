@@ -22,6 +22,7 @@ namespace DutchKBQADSCreate {
         {"en", DutchKBQADSCreate::NaturalLanguage::ENGLISH},
         {"nl", DutchKBQADSCreate::NaturalLanguage::DUTCH}
     };
+    std::string string_from_natural_language(const NaturalLanguage &language);
     enum LCQuADSplit {
         TRAIN,
         TEST
@@ -34,14 +35,17 @@ namespace DutchKBQADSCreate {
     const DutchKBQADSCreate::fs::path root_dir = DutchKBQADSCreate::fs::canonical(
             DutchKBQADSCreate::fs::path(".",
                                            DutchKBQADSCreate::fs::path::format::generic_format));
-    const DutchKBQADSCreate::fs::path resources_dir =
+    const DutchKBQADSCreate::fs::path dataset_dir =
         DutchKBQADSCreate::fs::canonical(DutchKBQADSCreate::root_dir /
-                                         "../../resources/");
-    Json::Value json_loaded_from_resources_file(const std::string &file_name);
-    void save_json_to_resources_file(const Json::Value &json,
+                                         "../../resources/dataset");
+    const DutchKBQADSCreate::fs::path supplements_dir =
+            DutchKBQADSCreate::dataset_dir / "supplements";
+    void create_directory_if_absent(const DutchKBQADSCreate::fs::path &dir_path);
+    Json::Value json_loaded_from_dataset_file(const std::string &file_name);
+    void save_json_to_dataset_file(const Json::Value &json,
+                                   const std::string &file_name);
+    void append_json_to_dataset_file(const Json::Value &json,
                                      const std::string &file_name);
-    void append_json_to_resources_file(const Json::Value &json,
-                                       const std::string &file_name);
     std::string string_with_regex_characters_escaped(const std::string &non_escaped);
 }
 

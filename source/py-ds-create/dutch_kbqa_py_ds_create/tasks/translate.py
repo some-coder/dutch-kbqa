@@ -1,17 +1,16 @@
 """Symbols for translating texts using Google Cloud Translate."""
 
 import six
-import json
 from dotenv import load_dotenv
 from google.cloud import translate_v2 as translate
 from pathlib import Path
 from dutch_kbqa_py_ds_create.lc_quad_2_0 import LCQuADQAPair, \
                                                 Split, \
-												dataset_split, \
+                                                dataset_split, \
                                                 question_type_for_translation
 from dutch_kbqa_py_ds_create.utilities import NaturalLanguage, \
                                               overwritably_print, \
-											  json_loaded_from_disk, \
+                                              json_loaded_from_disk, \
                                               save_json_to_disk
 from typing import Union, List, Dict, Set, cast
 
@@ -195,8 +194,8 @@ def summarised_uids_set(uids_set: Set[int]) -> str:
 def translate_complete_dataset_split_questions(split: Split,
                                                language: NaturalLanguage,
                                                file: Path,
-											   save_freq: int,
-											   quiet: bool) -> None:
+                                               save_freq: int,
+                                               quiet: bool) -> None:
 	"""Translates all questions of an LC-QuAD 2.0 dataset split into `language`
 	and incrementally saves these to `file`.
 

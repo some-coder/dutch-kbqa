@@ -65,7 +65,7 @@ void DutchKBQADSCreate::execute_dutch_kbqa_subprogram(po::variables_map &vm) {
     assert(it != string_to_task_type_map.end());
     TaskType task_type = it->second;
     if (task_type == TaskType::REPLACE_SPECIAL_SYMBOLS) {
-        replace_special_symbols_in_resources_file(vm);
+        replace_special_symbols_in_dataset_file(vm);
     } else if (task_type == TaskType::GENERATE_QUESTION_TO_ENTITIES_PROPERTIES_MAP) {
         generate_question_entities_properties_map(vm);
     } else {

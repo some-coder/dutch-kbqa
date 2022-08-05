@@ -14,6 +14,7 @@ namespace DutchKBQADSCreate {
     DutchKBQADSCreate::q_ent_prp_map question_entities_properties_map(const Json::Value &ds_split);
     void save_question_entities_properties_map(const DutchKBQADSCreate::q_ent_prp_map &m,
                                                const LCQuADSplit &split);
+    Json::Value loaded_question_entities_properties_map(const LCQuADSplit &split);
     void generate_question_entities_properties_map(const po::variables_map &vm);
 }
 

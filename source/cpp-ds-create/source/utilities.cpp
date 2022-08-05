@@ -8,6 +8,23 @@
 using namespace DutchKBQADSCreate;
 
 /**
+ * @brief Returns the natural language as a string.
+ *
+ * @param language The natural language to express in string form.
+ * @return Said natural language, but in string form.
+ */
+std::string DutchKBQADSCreate::string_from_natural_language(const NaturalLanguage &language) {
+    switch (language) {
+        case NaturalLanguage::ENGLISH:
+            return "en";
+        case NaturalLanguage::DUTCH:
+            return "nl";
+        default:
+            throw std::invalid_argument("This natural language is not supported!");
+    }
+}
+
+/**
  * @brief Returns the LC-QuAD 2.0 dataset `split` as a string.
  *
  * @param split The dataset split.
@@ -25,14 +42,37 @@ std::string DutchKBQADSCreate::string_from_lc_quad_split(const LCQuADSplit &spli
 }
 
 /**
+ * @brief Creates the directory specified by `path` similar to how `mkdir` is
+ *   used on UNIX-like machines, if it does not already exist.
+ *
+ * If the directory already exists, this method No-Ops silently.
+ *
+ * @param dir_path The directory path. The parent directory must already exist.
+ */
+void DutchKBQADSCreate::create_directory_if_absent(const fs::path &dir_path) {
+    std::error_code ec;
+    if (fs::exists(dir_path)) {
+        return;  /* no need to create already existing directory */
+    }
+    const bool creation_succeeded = fs::create_directory(dir_path, ec);
+    if (!creation_succeeded) {
+        throw std::runtime_error(std::string("Couldn't create directory.") +
+                                 "Error: " +
+                                 std::to_string(ec.value()) +
+                                 ".");
+    }
+}
+
+/**
  * @brief Returns JSON data loaded from a file stores in the project root
- *   `resources` directory.
+ *   `resources/dataset/` directory.
  * 
- * @param file_name The name of the file to load in `resources/`. Exclude `.json`.
+ * @param file_name The name of the file to load in `resources/dataset/`.
+ *   Exclude `.json`.
  * @return The JSON data.
  */
-Json::Value DutchKBQADSCreate::json_loaded_from_resources_file(const std::string &file_name) {
-    std::ifstream file(resources_dir / (file_name + ".json"),
+Json::Value DutchKBQADSCreate::json_loaded_from_dataset_file(const std::string &file_name) {
+    std::ifstream file(dataset_dir / (file_name + ".json"),
                        std::ifstream::binary);
     Json::Value json;
     file >> json;
@@ -47,11 +87,11 @@ Json::Value DutchKBQADSCreate::json_loaded_from_resources_file(const std::string
  * @param file_name The file in the project root's `resources` directory to save
  *   to. Exclude `.json`.
  */
-void DutchKBQADSCreate::save_json_to_resources_file(const Json::Value &json,
-                                                    const std::string &file_name) {
+void DutchKBQADSCreate::save_json_to_dataset_file(const Json::Value &json,
+                                                  const std::string &file_name) {
     Json::StyledStreamWriter writer;
     std::ofstream file;
-    file.open(resources_dir / (file_name + ".json"),
+    file.open(dataset_dir / (file_name + ".json"),
               std::ofstream::trunc);
     if (!file.is_open()) {
         throw std::runtime_error(std::string("JSON save file \"") +
@@ -69,16 +109,16 @@ void DutchKBQADSCreate::save_json_to_resources_file(const Json::Value &json,
  * @param file_name The name of the file in the project root's `resources`
  *   directory to which to append.
  */
-void DutchKBQADSCreate::append_json_to_resources_file(const Json::Value &json,
-                                                      const std::string &file_name) {
-    std::ifstream file(resources_dir / (file_name + ".json"),
+void DutchKBQADSCreate::append_json_to_dataset_file(const Json::Value &json,
+                                                    const std::string &file_name) {
+    std::ifstream file(dataset_dir / (file_name + ".json"),
                        std::ifstream::binary);
     Json::Value file_json;  /* JSON already present in `file`. */
     /* Try to get the JSON content of `file`. If it fails, create the file. */
     try {
         file >> file_json;
     } catch (Json::Exception::exception &exception) {
-        save_json_to_resources_file(json, file_name);
+        save_json_to_dataset_file(json, file_name);
         return;
     }
     Json::Value updated_file_json;  /* `file_json` plus `json`. */
@@ -100,7 +140,7 @@ void DutchKBQADSCreate::append_json_to_resources_file(const Json::Value &json,
             updated_file_json[member] = json[member];
         }
     }
-    save_json_to_resources_file(updated_file_json, file_name);
+    save_json_to_dataset_file(updated_file_json, file_name);
 }
 
 /* The following characters are reserved in regular expressions. */

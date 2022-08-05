@@ -3,6 +3,7 @@ GOOGLE_APPLICATION_CREDENTIALS="${PWD}/.service-account-key.json"  # name of the
 
 # General
 SPLIT="train"  # or "test"
+TARGET_LANGUAGE="nl"  # or some other natural language (will require code changes)
 
 # Translation
 TRANSLATE_SAVE_FREQ=50  # some integer above 1

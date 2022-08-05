@@ -6,13 +6,15 @@ from dutch_kbqa_py_ds_create.utilities import ROOT_DIR
 from typing import Union, Literal, TypedDict, List, Optional, cast
 
 
-RESOURCES_DIR = (ROOT_DIR /
-                 os.pardir /
-                 os.pardir /
-                 os.pardir /
-                 'resources').resolve()
-TRAIN_FILE = (RESOURCES_DIR / 'train.json').resolve()
-TEST_FILE = (RESOURCES_DIR / 'test.json').resolve()
+DATASET_DIR = (ROOT_DIR /
+               os.pardir /
+               os.pardir /
+               os.pardir /
+               'resources' /
+               'dataset').resolve()
+SUPPLEMENTS_DIR = (DATASET_DIR / "supplements").resolve()
+TRAIN_FILE = (DATASET_DIR / 'train-en.json').resolve()
+TEST_FILE = (DATASET_DIR / 'test-en.json').resolve()
 
 
 Split = Union[Literal['train'], Literal['test']]
