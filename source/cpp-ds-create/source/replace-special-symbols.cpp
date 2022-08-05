@@ -225,10 +225,10 @@ Json::Value DutchKBQADSCreate::json_with_html_entities_replaced(Json::Value json
  */
 void DutchKBQADSCreate::replace_special_symbols_in_resources_file(const po::variables_map &vm) {
     if (vm.count("load-file-name") == 0) {
-        throw std::invalid_argument(std::string(R"(The "-load-file-name" flag )") +
+        throw std::invalid_argument(std::string(R"(The "--load-file-name" flag )") +
                                     "is required.");
     } else if (vm.count("save-file-name") == 0) {
-        throw std::invalid_argument(std::string(R"(The "-save-file-name" flag )") +
+        throw std::invalid_argument(std::string(R"(The "--save-file-name" flag )") +
                                     "is required.");
     }
     std::string load_file_name = vm["load-file-name"].as<std::string>();

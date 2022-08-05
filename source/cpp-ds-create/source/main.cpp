@@ -16,7 +16,11 @@ using namespace DutchKBQADSCreate;
  * @return int An exit signal. `0` on success; non-zero on failure.
  */
 int main(int argc, char *argv[]) {
-    po::variables_map vm = dutch_kbqa_variables_map(argc, argv);
-    execute_dutch_kbqa_subprogram(vm);
+    vm_desc_pair vdp = dutch_kbqa_vm_desc_pair(argc, argv);
+    if (vdp.first.count("help") != 0) {
+        std::cout << vdp.second << std::endl;
+    } else {
+        execute_dutch_kbqa_subprogram(vdp.first);
+    }
     return EXIT_SUCCESS;
 }

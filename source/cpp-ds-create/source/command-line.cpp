@@ -3,24 +3,30 @@
 #include <stdexcept>
 #include "command-line.hpp"
 #include "replace-special-symbols.hpp"
+#include "question-entities-properties.hpp"
 
 using namespace DutchKBQADSCreate;
 
 /**
- * @brief Returns a populated command-line variables map for the program.
+ * @brief Returns a pair of objects. First, a populated command-line variables
+ *   map for the program; second, a description of the command-line options.
  * 
  * A 'variables map' is a concept from the Boost library's `program_options`
  * module. Variable maps map command-line flag names to values supplied to them
  * by the user.
+ *
+ * A 'command-line options description' lists all command-line options available
+ * to the end-user.
  * 
  * @param argc The number (count) of command-line arguments, including the
  *   name of the program.
  * @param argv An array of character pointers. The first entry contains the
  *   name of the program; all successive entries contain command-line
  *   arguments.
- * @return The variables map.
+ * @return The pair of (1) a variables map and (2) a description of
+ *   command-line options.
  */
-po::variables_map DutchKBQADSCreate::dutch_kbqa_variables_map(int argc, char *argv[]) {
+vm_desc_pair DutchKBQADSCreate::dutch_kbqa_vm_desc_pair(int argc, char *argv[]) {
     po::options_description desc(std::string("Post-process LC-QuAD 2.0 ") +
                                  "datasets. Options");
     
@@ -41,7 +47,7 @@ po::variables_map DutchKBQADSCreate::dutch_kbqa_variables_map(int argc, char *ar
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm); 
-    return vm;
+    return { vm, desc };
 }
 
 /**
@@ -60,6 +66,8 @@ void DutchKBQADSCreate::execute_dutch_kbqa_subprogram(po::variables_map &vm) {
     TaskType task_type = it->second;
     if (task_type == TaskType::REPLACE_SPECIAL_SYMBOLS) {
         replace_special_symbols_in_resources_file(vm);
+    } else if (task_type == TaskType::GENERATE_QUESTION_TO_ENTITIES_PROPERTIES_MAP) {
+        generate_question_entities_properties_map(vm);
     } else {
         throw std::invalid_argument(std::string("Task type \"") +
                                     vm["task"].as<std::string>() +

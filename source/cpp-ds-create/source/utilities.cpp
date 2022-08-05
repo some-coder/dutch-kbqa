@@ -8,6 +8,23 @@
 using namespace DutchKBQADSCreate;
 
 /**
+ * @brief Returns the LC-QuAD 2.0 dataset `split` as a string.
+ *
+ * @param split The dataset split.
+ * @return Said split, but in string form.
+ */
+std::string DutchKBQADSCreate::string_from_lc_quad_split(const LCQuADSplit &split) {
+    switch (split) {
+        case LCQuADSplit::TRAIN:
+            return "train";
+        case LCQuADSplit::TEST:
+            return "test";
+        default:
+            throw std::invalid_argument("This split type is not supported!");
+    }
+}
+
+/**
  * @brief Returns JSON data loaded from a file stores in the project root
  *   `resources` directory.
  * 

@@ -30,9 +30,10 @@ namespace DutchKBQADSCreate {
         {"train", DutchKBQADSCreate::LCQuADSplit::TRAIN},
         {"test", DutchKBQADSCreate::LCQuADSplit::TEST}
     };
-    const DutchKBQADSCreate::fs::path root_dir =
-        DutchKBQADSCreate::fs::canonical(DutchKBQADSCreate::fs::path(".",
-                                                                     DutchKBQADSCreate::fs::path::format::generic_format));
+    std::string string_from_lc_quad_split(const LCQuADSplit &split);
+    const DutchKBQADSCreate::fs::path root_dir = DutchKBQADSCreate::fs::canonical(
+            DutchKBQADSCreate::fs::path(".",
+                                           DutchKBQADSCreate::fs::path::format::generic_format));
     const DutchKBQADSCreate::fs::path resources_dir =
         DutchKBQADSCreate::fs::canonical(DutchKBQADSCreate::root_dir /
                                          "../../resources/");
