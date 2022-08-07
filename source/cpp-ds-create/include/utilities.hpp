@@ -40,6 +40,7 @@ namespace DutchKBQADSCreate {
                                          "../../resources/dataset");
     const DutchKBQADSCreate::fs::path supplements_dir =
             DutchKBQADSCreate::dataset_dir / "supplements";
+    bool dataset_file_exists(const fs::path &file);
     void create_directory_if_absent(const DutchKBQADSCreate::fs::path &dir_path);
     Json::Value json_loaded_from_dataset_file(const std::string &file_name);
     void save_json_to_dataset_file(const Json::Value &json,

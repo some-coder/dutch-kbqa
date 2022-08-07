@@ -4,6 +4,7 @@
 #include "command-line.hpp"
 #include "replace-special-symbols.hpp"
 #include "question-entities-properties.hpp"
+#include "entity-property-labels.hpp"
 
 using namespace DutchKBQADSCreate;
 
@@ -37,6 +38,12 @@ vm_desc_pair DutchKBQADSCreate::dutch_kbqa_vm_desc_pair(int argc, char *argv[]) 
         ("language",
          po::value<std::string>(),
          "The natural language of the file's contents.")
+        ("part-size",
+         po::value<int>(),
+         "The number of entities and properties to label before saving to disk. Minimally 1.")
+        ("quiet",
+         po::value<bool>(),
+         "Whether to report progress ('false') or not ('true').")
         ("load-file-name",
          po::value<std::string>(),
          "The name of the file to load from.")
@@ -68,6 +75,8 @@ void DutchKBQADSCreate::execute_dutch_kbqa_subprogram(po::variables_map &vm) {
         replace_special_symbols_in_dataset_file(vm);
     } else if (task_type == TaskType::GENERATE_QUESTION_TO_ENTITIES_PROPERTIES_MAP) {
         generate_question_entities_properties_map(vm);
+    } else if (task_type == TaskType::LABEL_ENTITIES_AND_PROPERTIES) {
+        label_entities_and_properties(vm);
     } else {
         throw std::invalid_argument(std::string("Task type \"") +
                                     vm["task"].as<std::string>() +

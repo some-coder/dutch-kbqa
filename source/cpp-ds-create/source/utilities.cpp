@@ -42,6 +42,18 @@ std::string DutchKBQADSCreate::string_from_lc_quad_split(const LCQuADSplit &spli
 }
 
 /**
+ * @brief Determines whether `file` exists under the project root's
+ *   `resources/dataset` directory.
+ *
+ * @param file The file to check existence for. The path to its location should
+ *   be expressed relative to `resources/dataset`.
+ * @return The question's answer.
+ */
+bool DutchKBQADSCreate::dataset_file_exists(const fs::path &file) {
+    return fs::exists(dataset_dir / file);
+}
+
+/**
  * @brief Creates the directory specified by `path` similar to how `mkdir` is
  *   used on UNIX-like machines, if it does not already exist.
  *
@@ -107,7 +119,7 @@ void DutchKBQADSCreate::save_json_to_dataset_file(const Json::Value &json,
  * 
  * @param json The JSON to append.
  * @param file_name The name of the file in the project root's `resources`
- *   directory to which to append.
+ *   directory to which to append. Exclude `.json`.
  */
 void DutchKBQADSCreate::append_json_to_dataset_file(const Json::Value &json,
                                                     const std::string &file_name) {
