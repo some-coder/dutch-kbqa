@@ -27,7 +27,7 @@ target_link_libraries(main PRIVATE Boost::boost Boost::program_options)
 
 if (("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux") OR
     ("${CMAKE_SYSTEM_NAME}" STREQUAL "Android") OR
-		("${CMAKE_SYSTEM_NAME}" STREQUAL "FreeBSD"))
+    ("${CMAKE_SYSTEM_NAME}" STREQUAL "FreeBSD"))
 	# Assume the GNU Compiler Collection (GCC).
 	target_compile_options(main PUBLIC "-std=c++17"
 	                                   "-Wall"
