@@ -2,6 +2,7 @@
 
 import os
 import json
+import platform
 from pathlib import Path
 from enum import Enum
 from typing import Union, Literal, Dict, Any, Optional
@@ -25,7 +26,11 @@ def overwritably_print(text: str) -> None:
     
     :param text: The text to print.
     """
-    print(f'\r{text}', flush=True, end='')
+    if platform.system() == 'Darwin':
+        print(f'\r{text}', flush=True, end='')
+    else:
+        # Disable fancy overwriting of lines; it's buggy.
+        print(text, flush=True)
 
 
 FileNotFoundReaction = Union[Literal['throw-error'],
