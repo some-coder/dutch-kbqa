@@ -65,7 +65,7 @@ cmake --build build/  # this may take a while
 
 ### Step 2.2: Post-process the dataset
 
-Perform each of the following for both the 'train' and 'test dataset splits of LC-QuAD 2.0. You can switch between them by changing the `$SPLIT` environment variable in your `.env` file, and re-running each of the shell scripts, in order, as described in the following.
+Perform each of the following for both the `"train"` and `"test"` dataset splits of LC-QuAD 2.0. You do so by first executing the steps below with your `.env`'s `$SPLIT` environment variable set to `"train"`; then, you repeat the steps below once more, but now with `$SPLIT` set to `"test"`.
 
 First, replace various special symbols:
 
