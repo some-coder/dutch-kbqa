@@ -1,27 +1,59 @@
-# Google Cloud Platform
-GOOGLE_APPLICATION_CREDENTIALS="${PWD}/.service-account-key.json"  # name of the service account key file
-
-# General
-SPLIT="train"  # or "test"
-TARGET_LANGUAGE="nl"  # or some other natural language (will require code changes)
-
-# Translation
-TRANSLATE_SAVE_FREQ=50  # some integer above 1
-# `REFERENCE_TRANSLATED_FILE` should be a relative or absolute path to
-# a JSON file. This file should store a translation of an original
-# LC-QuAD 2.0 dataset split, such as one in Dutch (`${SPLIT}_nl.json`).
-# This reference file can then be used to determine how much a
-# just-generated translation deviates from the reference. You can
-# perform such a 'deviation test' by executing the following command,
-# only, of course, after you have made a filled-in copy of this
-# `.sample-env`:
-# 
-# ```sh
-# (set -a .env && source .env && ./shell-scripts/validate.sh)
-# ```
+# EXAMPLE DOTENV FILE
 #
-# Testing for  deviation may be useful, as Google Cloud Translate seems
-# to change their neural machine translation (NMT) models from time to
-# time, affecting reproducibility.
+# Make a copy of this file with the name `.env`. This `.env` is often called a
+# 'dotenv file'. It serves as a configuration file for running programs in
+# this repository.
+#   The guides in the `documentation/` subdirectory will sometimes require you
+# to change values in this file. Do so to generate the right outputs.
+#   Unless marked with '(Optional.)', the environment variables below are
+# required.
+
+
+# `$GOOGLE_APPLICATION_CREDENTIALS` stores the file system location of your
+# Google Cloud service account credentials, which Google Cloud hands to you in
+# the form of a JSON file.
+#   Refer to `documentation/google-cloud.md` for details.
+GOOGLE_APPLICATION_CREDENTIALS="${PWD}/.service-account-key.json"
+
+
+# `$SPLIT` stores the LC-QuAD 2.0 dataset split that you want programs to work
+# on. The only two legal values for it are: "train" and "test".
+SPLIT="train"
+
+
+# `$SOURCE_LANGUAGE` stores the ISO 639-1 code of the natural language in which
+# LC-QuAD 2.0 is expressed.
+#   Since LC-QuAD 2.0 is published in English, leave it set to "en".
+SOURCE_LANGUAGE="en"
+
+
+# `$TARGET_LANGUAGE` stores the ISO 639-1 code of the natural language in which
+# the derived dataset is expressed.
+#   The paper associated to this repostory uses Dutch, so the default is "nl".
+#   Note that, if you want to use any other natural language than Dutch, you
+# need to make some code changes. Specifically, multiple `enum`s probably need
+# an additional entry for your extra language.
+TARGET_LANGUAGE="nl"
+
+
+# `$TRANSLATE_SAVE_FREQ` stores the frequency of saving to disk during
+# translation of the LC-QuAD 2.0 dataset from `$SOURCE_LANGUAGE` to
+# `$TARGET_LANGUAGE`, expressed as the number of entries to process between
+# two successive saves-to-disk.
+TRANSLATE_SAVE_FREQ=50
+
+
+# `$LABEL_LANGUAGE` stores the ISO 639-1 code of the natural language in which
+# to collect labels for WikiData entities and properties.
+#   It has two legal values: `$SOURCE_LANGUAGE` and `TARGET_LANGUAGE`. See
+# above.
+LABEL_LANGUAGE="$SOURCE_LANGUAGE"
+
+
+# (Optional.) `$REFERENCE_TRANSLATED_FILE` stores the file system location of a
+# 'reference translation' of the LC-QuAD 2.0 dataset in `$TARGET_LANGUAGE`.
+#   If supplied, you can run the program `shell-scripts/validate.sh` to see how
+# much your translation deviates from the reference. It is largely meant for
+# debugging, and is not used at any point during the main workflow.
 REFERENCE_TRANSLATED_FILE="/path/to/translation.json"
 

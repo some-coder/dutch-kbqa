@@ -65,7 +65,7 @@ cmake --build build/  # this may take a while
 
 ### Step 2.2: Post-process the dataset
 
-Perform each of the following for both the 'train' and 'test dataset splits of LC-QuAD 2.0. You can switch between them by changing the `$SPLIT` environment variable in your `.env` file, and re-running the shell scripts.
+Perform each of the following for both the 'train' and 'test dataset splits of LC-QuAD 2.0. You can switch between them by changing the `$SPLIT` environment variable in your `.env` file, and re-running each of the shell scripts, in order, as described in the following.
 
 First, replace various special symbols:
 
@@ -79,5 +79,21 @@ Second, replace `ERROR`s by proper references:
 (set -a .env && source .env && ./shell-scripts/replace-errors.sh)
 ```
 
-(More to follow later.)
+Third, per question, collect the WikiData entities and properties present in said questions:
+
+```sh
+(set -a .env && source .env && ./shell-scripts/generate-question-entities-properties-map.sh)
+```
+
+Fourth, for each unique WikiData entity and property, generate labels for these entities and properties. Run this step one time with the environment variable `$LABEL_LANGUAGE` set to `$SOURCE_LANGUAGE`, and one time with `$LABEL_LANGUAGE` set to `$TARGET_LANGUAGE`:
+
+```sh
+# First run: In your `.env`, set `$LABEL_LANGUAGE` to `$SOURCE_LANGUAGE`. Then run the line below:
+(set -a .env && source .env && ./shell-scripts/label-entities-and-properties.sh)
+
+# Second run: Now set it to `$TARGET_LANGUAGE`. Then run the line below:
+(set -a .env && source .env && ./shell-scripts/label-entities-and-properties.sh)
+```
+
+(More information will follow.)
 

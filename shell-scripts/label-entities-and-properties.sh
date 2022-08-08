@@ -6,7 +6,7 @@ cmake --build build
 ./build/main \
 	--task "label-entities-and-properties" \
 	--split "$SPLIT" \
-	--language "$TARGET_LANGUAGE" \
+	--language "$LABEL_LANGUAGE" \
 	--part-size 15 \
 	--quiet "false"
 

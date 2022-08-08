@@ -13,8 +13,8 @@ FIGSHARE_BASE_URL="https://figshare.com/ndownloader/files"
 TRAIN_FILE_ID="15738824"
 TEST_FILE_ID="15738818"
 DATASET_DIRECTORY="${PWD}/resources/dataset"
-TRAIN_FILE_NAME="train-en.json"
-TEST_FILE_NAME="test-en.json"
+TRAIN_FILE_NAME="train-${SOURCE_LANGUAGE}.json"
+TEST_FILE_NAME="test-${SOURCE_LANGUAGE}.json"
 
 if [ -d "$DATASET_DIRECTORY" ] ; then
 	:
