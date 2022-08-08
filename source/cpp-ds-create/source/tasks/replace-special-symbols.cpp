@@ -3,9 +3,7 @@
 #include <regex>
 #include <stdexcept>
 #include "utilities.hpp"
-#include "replace-special-symbols.hpp"
-
-#include <iostream>
+#include "tasks/replace-special-symbols.hpp"
 
 using namespace DutchKBQADSCreate;
 

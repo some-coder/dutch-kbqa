@@ -2,8 +2,7 @@
 
 #include <regex>
 #include <set>
-#include <iostream>
-#include "question-entities-properties.hpp"
+#include "tasks/collect-entities-properties.hpp"
 #include "utilities.hpp"
 
 using namespace DutchKBQADSCreate;

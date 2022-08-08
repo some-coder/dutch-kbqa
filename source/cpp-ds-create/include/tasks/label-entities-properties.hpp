@@ -1,7 +1,7 @@
 /* Symbols for retrieving labels for WikiData entities and properties (header). */
 
-#ifndef ENTITY_PROPERTY_LABELS_HPP
-#define ENTITY_PROPERTY_LABELS_HPP
+#ifndef LABEL_ENTITIES_PROPERTIES_HPP
+#define LABEL_ENTITIES_PROPERTIES_HPP
 
 #include <set>
 #include <json/json.h>
@@ -24,4 +24,4 @@ namespace DutchKBQADSCreate {
     void label_entities_and_properties(const DutchKBQADSCreate::po::variables_map &vm);
 }
 
-#endif  /* ENTITY_PROPERTY_LABELS_HPP */
+#endif  /* LABEL_ENTITIES_PROPERTIES_HPP */

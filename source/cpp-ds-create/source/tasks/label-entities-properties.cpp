@@ -5,8 +5,8 @@
 #include <curlpp/Infos.hpp>
 #include <chrono>
 #include <thread>
-#include "entity-property-labels.hpp"
-#include "question-entities-properties.hpp"
+#include "tasks/label-entities-properties.hpp"
+#include "tasks/collect-entities-properties.hpp"
 #include "utilities.hpp"
 
 using namespace DutchKBQADSCreate;
@@ -320,7 +320,7 @@ const int query_interval_seconds_to_wait = 3;
  * @brief Performs the WikiData query for obtaining entity and property labels,
  *   retrying when various types of network issues arise.
  *
- * @param request The WikiData label-extractoin request to perform.
+ * @param request The WikiData label-extraction request to perform.
  */
 void perform_wikidata_entity_and_property_labels_request(curlpp::Easy &request) {
     std::optional<size_t> res_code = std::nullopt;

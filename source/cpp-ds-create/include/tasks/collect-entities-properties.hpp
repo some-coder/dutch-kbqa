@@ -1,7 +1,7 @@
 /* Symbols for relating LC-QuAD 2.0 questions to WikiData entities and properties (header). */
 
-#ifndef QUESTION_ENTITIES_PROPERTIES_HPP
-#define QUESTION_ENTITIES_PROPERTIES_HPP
+#ifndef COLLECT_ENTITIES_PROPERTIES_HPP
+#define COLLECT_ENTITIES_PROPERTIES_HPP
 
 #include <json/json.h>
 #include <map>
@@ -18,4 +18,4 @@ namespace DutchKBQADSCreate {
     void generate_question_entities_properties_map(const po::variables_map &vm);
 }
 
-#endif  /* QUESTION_ENTITIES_PROPERTIES_HPP */
+#endif  /* COLLECT_ENTITIES_PROPERTIES_HPP */

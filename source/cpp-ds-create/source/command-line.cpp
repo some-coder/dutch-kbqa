@@ -2,9 +2,9 @@
 
 #include <stdexcept>
 #include "command-line.hpp"
-#include "replace-special-symbols.hpp"
-#include "question-entities-properties.hpp"
-#include "entity-property-labels.hpp"
+#include "tasks/replace-special-symbols.hpp"
+#include "tasks/collect-entities-properties.hpp"
+#include "tasks/label-entities-properties.hpp"
 
 using namespace DutchKBQADSCreate;
 
