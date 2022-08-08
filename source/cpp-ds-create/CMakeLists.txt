@@ -50,3 +50,8 @@ else()
 	message(FATAL_ERROR "Unsupported platform \"${CMAKE_SYSTEM_NAME}\".")
 endif()
 
+# Somehow, JsonCPP imposes the `cxx_std_11` compilation option on us,
+# even though it should be isolated. With this line, we override
+# that option to ensure the C++ 17 standard is used.
+target_compile_features(main PRIVATE cxx_std_17)
+

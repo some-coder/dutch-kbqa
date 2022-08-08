@@ -25,7 +25,7 @@ def overwritably_print(text: str) -> None:
     
     :param text: The text to print.
     """
-    print(text, flush=True)
+    print(f'\r{text}', flush=True, end='')
 
 
 FileNotFoundReaction = Union[Literal['throw-error'],

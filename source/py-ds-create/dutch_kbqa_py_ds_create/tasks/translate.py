@@ -149,7 +149,7 @@ def save_trl_questions_to_disk(trl_questions: TranslatedLCQuADQuestions,
 
 def question_uid_partition(ds_split: List[LCQuADQAPair],
                            trl_questions: TranslatedLCQuADQuestions,
-						   save_freq: int) -> List[Set[int]]:
+                           save_freq: int) -> List[Set[int]]:
 	"""Returns a partition of question UIDs.
 
 	This function partitions the question UIDs present in `ds_split` but not
@@ -212,14 +212,16 @@ def translate_complete_dataset_split_questions(split: Split,
 	ds_split = dataset_split(split)
 	trl_questions = trl_questions_from_disk(file)
 	partition = question_uid_partition(ds_split, trl_questions, save_freq)
-	if not quiet:	
+	if not quiet and len(partition) == 0:
+		overwritably_print('LC-QuAD 2.0 dataset split already translated!')
+	elif not quiet:	
 		overwritably_print('Starting translation of split %s into \'%s\'...' %
 		                   (split, language))
 	for index, part in enumerate(partition):
 		translate_dataset_split_questions(ds_split,
 		                                  trl_questions,
-										  language,
-										  question_uids=part)
+		                                  language,
+		                                  question_uids=part)
 		save_trl_questions_to_disk(trl_questions, file)
 		if not quiet:
 			percent_done = ((index + 1) / len(partition)) * 100.
