@@ -16,11 +16,15 @@ namespace DutchKBQADSCreate::SuffixTrees {
 
 namespace DutchKBQADSCreate::SuffixTrees {
     /**
+     * @brief A pointer that can either be smart (C++-style) or weak (C-style).
+     */
+    using int_ptr_variant = std::variant<std::unique_ptr<int>, int*>;
+    /**
      * @brief A right pointer in a Ukkonen suffix tree.
      *
      * For more information, see `left_right_pointer_pair`.
      */
-    using right_pointer = std::variant<std::unique_ptr<int>, int*>;
+    using right_pointer = int_ptr_variant;
     /**
      * @brief A left- with right pointer pair, pointing to the starting and
      *   ending index of a substring of a string represented by a Ukkonen
@@ -74,6 +78,8 @@ namespace DutchKBQADSCreate::SuffixTrees {
      * state.
      */
     using code_point_pointer_pair = std::pair<utf8::uint32_t, std::unique_ptr<int>>;
+
+    int *weak_int_ptr_from_variant(const int_ptr_variant &v);
 
     /**
      * @brief A state in a Ukkonen suffix tree that is actually stored in

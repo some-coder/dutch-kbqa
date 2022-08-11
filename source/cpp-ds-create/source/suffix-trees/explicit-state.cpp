@@ -2,9 +2,26 @@
 
 #include <iostream>
 #include <algorithm>
+#include <cassert>
 #include "suffix-trees/explicit-state.hpp"
 
 using namespace DutchKBQADSCreate::SuffixTrees;
+
+
+/**
+ * @brief Extracts the pointer to an integer, regardless of whether it is
+ *   a smart (C++-style) or weak (C-style) pointer.
+ *
+ * @param v The variant which contains the integer pointer.
+ * @return The integer pointer.
+ */
+int *DutchKBQADSCreate::SuffixTrees::weak_int_ptr_from_variant(const int_ptr_variant &v) {
+    if (std::holds_alternative<std::unique_ptr<int>>(v)) {
+        return std::get<std::unique_ptr<int>>(v).get();
+    } else {
+        return std::get<int*>(v);
+    }
+}
 
 int ExplicitState::explicit_states_id_counter = 0;
 
@@ -81,8 +98,7 @@ void ExplicitState::set_suffix_link(ExplicitState *next_on_path) {
  * @return The suffix link. If this state does not have a suffix link (yet),
  *   then `nullptr` is returned.
  */
-ExplicitState* ExplicitState::get_suffix_link() {
-    return this->suffix_link;
+ExplicitState* ExplicitState::get_suffix_link() { return this->suffix_link;
 }
 
 /**
@@ -106,13 +122,7 @@ bool ExplicitState::has_transition(utf8::uint32_t code_point) {
  */
 weak_state_transition ExplicitState::weakly_get_transition(utf8::uint32_t code_point) {
     int *right_ptr;
-    if (std::holds_alternative<std::unique_ptr<int>>(this->transitions[code_point].first.second)) {
-        /* The right pointer is a unique pointer (a 'strong' or smart pointer). */
-        right_ptr = std::get<std::unique_ptr<int>>(this->transitions[code_point].first.second).get();
-    } else {
-        /* The right pointer is a raw pointer (a 'weak' or C-style pointer). */
-        right_ptr = std::get<int*>(this->transitions[code_point].first.second);
-    }
+    right_ptr = weak_int_ptr_from_variant(this->transitions[code_point].first.second);
     ExplicitState *es_ptr = this->transitions[code_point].second.get();
     return { std::pair<int, int*>(this->transitions[code_point].first.first, right_ptr), es_ptr };
 }
@@ -143,11 +153,7 @@ ExplicitState *ExplicitState::internal_split(UnicodeString uni_str,
 
     /* (2/4) Create a new, intermediate transition destination for `s`, called `r`. */
     k_prime = s_prime_transition.first.first;
-    if (std::holds_alternative<std::unique_ptr<int>>(right_ptr)) {
-        p = *(std::get<std::unique_ptr<int>>(right_ptr));
-    } else {
-        p = *(std::get<int*>(right_ptr));
-    }
+    p = *weak_int_ptr_from_variant(right_ptr);
     std::unique_ptr<ExplicitState> r = std::make_unique<ExplicitState>(this);
 
     /* (3/4) Link `r` to `s'`. */
@@ -236,20 +242,17 @@ std::string indent_string(int number) {
  *   is based.
  * @param num_indents The number of indents to apply during formatting. A
  *   strictly non-negative integer.
+ * @warning This method is recursive. As such, if fed sufficiently large input,
+ *   it may overflow the program's stack memory.
  */
 void ExplicitState::print(UnicodeString uni_str, int num_indents) {
+    assert(num_indents >= 0);
     const std::string indent_str = indent_string(num_indents);
     std::cout << indent_str << this->as_string() << std::endl;
     for (const auto &transition : this->transitions) {
         int trn_left_ptr, *trn_right_ptr;
         trn_left_ptr = transition.second.first.first - 1;  /* Indices cancel out: -1 + 1 = 0. */
-        if (std::holds_alternative<std::unique_ptr<int>>(transition.second.first.second)) {
-            /* Transition destination is encoded as a smart, C++-style pointer. */
-            trn_right_ptr = std::get<std::unique_ptr<int>>(transition.second.first.second).get();
-        } else {
-            /* Transition destination is encoded as a weak, C-style pointer. */
-            trn_right_ptr = std::get<int*>(transition.second.first.second);
-        }
+        trn_right_ptr = weak_int_ptr_from_variant(transition.second.first.second);
         UnicodeString trn_substr = uni_str.substring(trn_left_ptr, *trn_right_ptr);
         std::cout << indent_str << single_indent;
         std::cout << "(" << transition.second.first.first << ", " << *trn_right_ptr << ") ";
@@ -347,6 +350,7 @@ std::optional<ExplicitState*> AuxiliaryState::state_transition_if_present(utf8::
  *   strictly non-negative integer.
  */
 void AuxiliaryState::print(UnicodeString uni_str, int num_indents) {
+    assert(num_indents > 0);
     const std::string indent_str = indent_string(num_indents);
     std::cout << num_indents << this->as_string() << std::endl;
     for (const auto &pair : this->left_right_pointer_pair_integers_per_code_point) {

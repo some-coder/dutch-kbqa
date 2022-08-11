@@ -53,11 +53,7 @@ canon_reference_pair ReferencePair::canonised(UnicodeString uni_str) {
         weak_state_transition transition = out_state->weakly_get_transition(uni_str.code_point_at(out_left_ptr - 1));
         int left_ptr_prime = transition.first.first;
         int right_ptr_prime;
-        if (std::holds_alternative<std::unique_ptr<int>>(transition.first.second)) {
-            right_ptr_prime = *std::get<std::unique_ptr<int>>(transition.first.second);
-        } else {
-            right_ptr_prime = *std::get<int*>(transition.first.second);
-        }
+        right_ptr_prime = *weak_int_ptr_from_variant(transition.first.second);
         /* Keep walking down until we have a truly canonised reference pair. */
         while ((right_ptr_prime - left_ptr_prime) <= (this->right_ptr - out_left_ptr)) {
             out_left_ptr += right_ptr_prime - left_ptr_prime + 1;
@@ -65,11 +61,7 @@ canon_reference_pair ReferencePair::canonised(UnicodeString uni_str) {
             if (out_left_ptr <= (this->right_ptr)) {
                 transition = out_state->weakly_get_transition(uni_str.code_point_at(out_left_ptr - 1));
                 left_ptr_prime = transition.first.first;
-                if (std::holds_alternative<std::unique_ptr<int>>(transition.first.second)) {
-                    right_ptr_prime = *std::get<std::unique_ptr<int>>(transition.first.second);
-                } else {
-                    right_ptr_prime = *std::get<int*>(transition.first.second);
-                }
+                right_ptr_prime = *weak_int_ptr_from_variant(transition.first.second);
             }
         }
         return { out_state, out_left_ptr };
