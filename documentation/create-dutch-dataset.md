@@ -63,6 +63,8 @@ cmake -B build/ \
 cmake --build build/  # this may take a while
 ```
 
+**Note.** In the first `cmake` call above, you can optionally add the argument `-G "Ninja"` to potentially speed up the build process. Thi does, however, require that you have `ninja` installed on your system. On Ubuntu and other Linux distributions, something like `sudo apt install ninja-build` should suffice; on Macs, use `brew install ninja`.
+
 ### Step 2.2: Post-process the dataset
 
 Perform each of the following for both the `"train"` and `"test"` dataset splits of LC-QuAD 2.0. You do so by first executing the steps below with your `.env`'s `$SPLIT` environment variable set to `"train"`; then, you repeat the steps below once more, but now with `$SPLIT` set to `"test"`.

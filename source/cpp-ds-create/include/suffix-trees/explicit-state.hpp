@@ -66,6 +66,14 @@ namespace DutchKBQADSCreate::SuffixTrees {
      * state can exists per code point.
      */
     using state_transitions = std::map<utf8::uint32_t, state_transition>;
+    /**
+     * @brief A pair consisting of a code point and an associated left (and
+     *   simultaneously right) pointer.
+     *
+     * This type is used for the auxiliary state's transitions to the root
+     * state.
+     */
+    using code_point_pointer_pair = std::pair<utf8::uint32_t, std::unique_ptr<int>>;
 
     /**
      * @brief A state in a Ukkonen suffix tree that is actually stored in
@@ -123,6 +131,7 @@ namespace DutchKBQADSCreate::SuffixTrees {
     public:
         explicit ExplicitState(ExplicitState *parent);
         virtual ~ExplicitState();
+        [[nodiscard]] int get_id() const;
         void set_transition(UnicodeString uni_str,
                             int left_ptr,
                             right_pointer right_ptr,
@@ -134,10 +143,10 @@ namespace DutchKBQADSCreate::SuffixTrees {
         ExplicitState *internal_split(UnicodeString uni_str,
                                       int left_ptr,
                                       right_pointer right_ptr);
-        virtual std::optional<ExplicitState*> tee_transition(utf8::uint32_t code_point);
+        virtual std::optional<ExplicitState*> state_transition_if_present(utf8::uint32_t code_point);
         state_transitions::iterator transitions_start();
         state_transitions::iterator transitions_end();
-        friend std::ostream &operator<<(std::ostream &os, const ExplicitState &es);
+        [[nodiscard]] std::string as_string() const;
         virtual void print(UnicodeString uni_str, int num_indents);
     };
 
@@ -174,13 +183,14 @@ namespace DutchKBQADSCreate::SuffixTrees {
          * multiply-occurring symbols (code points) in the string should be
          * 'squashed'. Here, however, we leave them all distinct.
          */
-        std::vector<std::unique_ptr<int>> left_right_pointer_pair_integers_per_code_point;
+        std::vector<code_point_pointer_pair> left_right_pointer_pair_integers_per_code_point;
     public:
         explicit AuxiliaryState(UnicodeString uni_str);
         ~AuxiliaryState() override;
+        int *weak_pointer_for_code_point(utf8::uint32_t code_point);
         bool has_transition(utf8::uint32_t code_point) override;
         weak_state_transition weakly_get_transition(utf8::uint32_t code_point) override;
-        std::optional<ExplicitState*> tee_transition(utf8::uint32_t code_point) override;
+        std::optional<ExplicitState*> state_transition_if_present(utf8::uint32_t code_point) override;
         void print(UnicodeString uni_str, int num_indents) override;
     };
 }
