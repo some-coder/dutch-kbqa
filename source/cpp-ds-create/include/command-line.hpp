@@ -12,7 +12,8 @@ namespace DutchKBQADSCreate {
     enum TaskType {
         REPLACE_SPECIAL_SYMBOLS,
         GENERATE_QUESTION_TO_ENTITIES_PROPERTIES_MAP,
-        LABEL_ENTITIES_AND_PROPERTIES
+        LABEL_ENTITIES_AND_PROPERTIES,
+        MASK_QUESTION_ANSWER_PAIRS
     };
     const std::unordered_map<std::string, DutchKBQADSCreate::TaskType> string_to_task_type_map = {
         {"replace-special-symbols",
@@ -20,7 +21,9 @@ namespace DutchKBQADSCreate {
         {"generate-question-entities-properties-map",
          DutchKBQADSCreate::GENERATE_QUESTION_TO_ENTITIES_PROPERTIES_MAP},
         {"label-entities-and-properties",
-         DutchKBQADSCreate::LABEL_ENTITIES_AND_PROPERTIES}
+         DutchKBQADSCreate::LABEL_ENTITIES_AND_PROPERTIES},
+        {"mask-question-answer-pairs",
+         DutchKBQADSCreate::MASK_QUESTION_ANSWER_PAIRS}
     };
     using vm_desc_pair = std::pair<DutchKBQADSCreate::po::variables_map,
                                    DutchKBQADSCreate::po::options_description>;

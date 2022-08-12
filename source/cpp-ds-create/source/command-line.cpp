@@ -5,6 +5,7 @@
 #include "tasks/replace-special-symbols.hpp"
 #include "tasks/collect-entities-properties.hpp"
 #include "tasks/label-entities-properties.hpp"
+#include "tasks/mask-question-answer-pairs.hpp"
 
 using namespace DutchKBQADSCreate;
 
@@ -77,6 +78,8 @@ void DutchKBQADSCreate::execute_dutch_kbqa_subprogram(po::variables_map &vm) {
         generate_question_entities_properties_map(vm);
     } else if (task_type == TaskType::LABEL_ENTITIES_AND_PROPERTIES) {
         label_entities_and_properties(vm);
+    } else if (task_type == TaskType::MASK_QUESTION_ANSWER_PAIRS) {
+        mask_question_answer_pairs(vm);
     } else {
         throw std::invalid_argument(std::string("Task type \"") +
                                     vm["task"].as<std::string>() +
