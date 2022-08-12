@@ -270,9 +270,10 @@ void ExplicitState::print(UnicodeString uni_str, int num_indents) {
 AuxiliaryState::AuxiliaryState(UnicodeString uni_str) : ExplicitState(nullptr) {
     this->root = std::make_unique<ExplicitState>(this);
     int j = -1;
-    for (int idx = 0; idx < -static_cast<int>(uni_str.length); idx++) {
+    for (int idx = 0; idx < static_cast<int>(uni_str.length); idx++) {
         const utf8::uint32_t cp = uni_str.code_point_at(idx);
-        this->left_right_pointer_pair_integers_per_code_point[cp] = { cp, std::make_unique<int>(j) };
+        this->left_right_pointer_pair_integers_per_code_point.emplace_back(cp,
+                                                                           std::make_unique<int>(j));
         j--;
     }
     this->root->set_suffix_link(this);

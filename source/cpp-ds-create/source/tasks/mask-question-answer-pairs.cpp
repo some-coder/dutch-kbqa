@@ -7,8 +7,8 @@
 using namespace DutchKBQADSCreate;
 
 void DutchKBQADSCreate::mask_question_answer_pairs(const po::variables_map &vm) {
-    const std::string first("abc");
-    const std::string second("ab");
+    const std::string first("xabxac");
+    const std::string second("abcabxabcd");
     auto result = SuffixTrees::longest_common_substring(first, second);
     if (result.has_value()) {
         std::cout << "LCS: " << result.value() << std::endl;
