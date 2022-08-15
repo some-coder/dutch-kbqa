@@ -19,7 +19,7 @@ using namespace DutchKBQADSCreate;
  * @return The set.
  */
 std::set<std::string> DutchKBQADSCreate::unique_entities_and_properties_of_split(const LCQuADSplit &split) {
-    Json::Value json = loaded_question_entities_properties_map(split);
+    Json::Value json = loaded_json_question_entities_properties_map(split);
     std::set<std::string> ent_prp_set;
     for (const auto &member : json.getMemberNames()) {
         for (const auto &ent_or_prp : json[member]) {
@@ -71,16 +71,16 @@ void DutchKBQADSCreate::save_entity_and_property_labels(const Json::Value &json,
 }
 
 /**
- * @brief Returns the required entity-and-property labels file loaded from
- *   disk.
+ * @brief Returns the required entity-and-property labels file as a JSON object
+ *   loaded from disk.
  *
  * @param split The LC-QuAD 2.0 dataset split to target.
  * @param language The natural language to target.
- * @return The loaded labels file, provided that it exists on disk. If not, an
- *   empty JSON object is returned instead.
+ * @return The loaded labels file as a JSON object, provided that it exists on
+ *   disk. If not, an empty JSON object is returned instead.
  */
-Json::Value DutchKBQADSCreate::loaded_entity_and_property_labels(const LCQuADSplit &split,
-                                                                 const NaturalLanguage &language) {
+Json::Value DutchKBQADSCreate::loaded_json_entity_and_property_labels(const LCQuADSplit &split,
+                                                                      const NaturalLanguage &language) {
     const std::string relative_path = std::string("supplements/") +
                                       entity_and_property_labels_file_name(split, language);
     if (dataset_file_exists(relative_path + ".json")) {
@@ -88,6 +88,54 @@ Json::Value DutchKBQADSCreate::loaded_entity_and_property_labels(const LCQuADSpl
     } else {
         return {};  /* return an empty JSON object if it isn't found */
     }
+}
+
+/**
+ * @brief Returns the required entity-and-property labels file as a C++ map
+ *   loaded from disk.
+ *
+ * @param split The LC-QuAD 2.0 dataset split to target.
+ * @param language The natural language to target.
+ * @return The loaded labels file as a C++ map, provided that it exists on
+ *   disk. If not, an empty C++ map is returned instead.
+ */
+ent_prp_label_map DutchKBQADSCreate::loaded_entity_and_property_labels(const LCQuADSplit &split,
+                                                                       const NaturalLanguage &language) {
+    ent_prp_label_map m;
+    Json::Value json = loaded_json_entity_and_property_labels(split, language);
+    for (const auto &member : json.getMemberNames()) {
+        m.insert({ member, {} });
+        for (const auto &ent_prp_label : json[member]) {
+            m[member].push_back(ent_prp_label.asString());
+        }
+    }
+    return m;
+}
+
+/**
+ * @brief Returns a subset of the mapping from entities and properties to
+ *   labels, containing only key-value pairs whose keys are entries in
+ *   `ent_prp_set`.
+ *
+ * @param ent_prp_set The set of entities and properties to include in the
+ *   mapping subset.
+ * @param all A complete mapping from entities and properties to labels, even
+ *   including entries whose keys are not part of `ent_prp_set`.
+ * @return The subset of the map.
+ */
+ent_prp_label_map DutchKBQADSCreate::entity_and_property_labels_subset(const std::set<std::string> &ent_prp_set,
+                                                                       const ent_prp_label_map &all) {
+    ent_prp_label_map sub_map;
+    for (const auto &ent_or_prp : ent_prp_set) {
+        if (all.find(ent_or_prp) == all.end()) {
+            /* Entity or property isn't even listed. Treat as if it has no
+             * labels. */
+            sub_map.insert({ ent_or_prp, {} });
+        } else {
+            sub_map.insert({ ent_or_prp, all.at(ent_or_prp) });
+        }
+    }
+    return sub_map;
 }
 
 /**
@@ -106,7 +154,7 @@ Json::Value DutchKBQADSCreate::loaded_entity_and_property_labels(const LCQuADSpl
  */
 std::set<std::string> DutchKBQADSCreate::entities_and_properties_requiring_labeling(const LCQuADSplit &split,
                                                                                     const NaturalLanguage &language) {
-    Json::Value current_json = loaded_entity_and_property_labels(split, language);
+    Json::Value current_json = loaded_json_entity_and_property_labels(split, language);
     const std::set<std::string> ent_prp_total = unique_entities_and_properties_of_split(split);
     std::set<std::string> ent_prp_labelled;
     for (const auto &ent_or_prp : current_json.getMemberNames()) {

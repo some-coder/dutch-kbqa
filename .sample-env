@@ -50,6 +50,25 @@ TRANSLATE_SAVE_FREQ=50
 LABEL_LANGUAGE="$SOURCE_LANGUAGE"
 
 
+# `MASK_MATCHING_THRESHOLD` stores a fraction (0.0 and 1.0 both inclusive) that
+# represents a threshold. This threshold determines how many characters of a
+# label of an entity or property should minimally (inclusively) match in a 
+# to-be-masked question string in order for us to accept that label as
+# 'appropriate'.
+#   Importantly, if for some entity or property all labels are deemed not
+# appropriate (with respect to some question string), then the question-answer
+# pair is rejected from the derived LC-QuAD 2.0 dataset. This is how the
+# derived dataset may eventually contain less entries than the original
+# LC-QuAD 2.0 dataset.
+#   The default threshold is set to 1.0, meaning that the complete entity or
+# property label must be found within the to-be-masked question string in order
+# for the label to be accepted. Lowering the value would mean admitting more
+# question-answer pairs in the final dataset, at the cost of a lower-quality
+# dataset overall (because relatively many entries in said dataset are
+# poorly-masked).
+MASK_MATCHING_THRESHOLD=1.0
+
+
 # (Optional.) `$REFERENCE_TRANSLATED_FILE` stores the file system location of a
 # 'reference translation' of the LC-QuAD 2.0 dataset in `$TARGET_LANGUAGE`.
 #   If supplied, you can run the program `shell-scripts/validate.sh` to see how

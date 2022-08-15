@@ -3,6 +3,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
+#include <cassert>
 #include "utilities.hpp"
 
 using namespace DutchKBQADSCreate;
@@ -38,6 +39,29 @@ std::string DutchKBQADSCreate::string_from_lc_quad_split(const LCQuADSplit &spli
             return "test";
         default:
             throw std::invalid_argument("This split type is not supported!");
+    }
+}
+
+/**
+ * @brief Determines which type of WikiData symbol an entity or property
+ *   belongs to.
+ *
+ * This function throws an `invalid_argument` error if `ent_or_prp` is neither
+ * an entity nor a property.
+ *
+ * @param ent_or_prp The entity or property.
+ */
+WikiDataSymbol DutchKBQADSCreate::wiki_data_symbol_for_entity_or_property(const std::string &ent_or_prp) {
+    assert(!ent_or_prp.empty());
+    switch (ent_or_prp[0]) {
+        case 'Q':
+            return WikiDataSymbol::ENTITY;
+        case 'P':
+            return WikiDataSymbol::PROPERTY;
+        default:
+            throw std::invalid_argument(std::string("\"") +
+                                        ent_or_prp +
+                                        "\" is not an entity or property!");
     }
 }
 
@@ -190,4 +214,65 @@ std::string DutchKBQADSCreate::string_with_regex_characters_escaped(const std::s
         escapes_added += c;
     }
     return escapes_added;
+}
+
+/**
+ * @brief Returns a set of strings built from a vector of strings.
+ *
+ * @param vec The vector to obtain a set from.
+ * @return The set.
+ */
+std::set<std::string> DutchKBQADSCreate::string_set_from_string_vec(const std::vector<std::string> &vec) {
+    std::set<std::string> set;
+    std::for_each(vec.begin(),
+                  vec.end(),
+                  [&set] (const std::string &entry) -> void { set.insert(entry); });
+    return set;
+}
+
+/**
+ * @brief Returns the starting and ending index of `sub_str` in `str`. Both
+ *   indices are inclusive, by the description of the type `index_range`. If
+ *   `sub_str` is not wholly present in `str`, null is returned instead; if
+ *   multiple matches occur, only the first one's indices are provided.
+ *
+ * @param str The string in which to search for `sub_str`.
+ * @param sub_str The substring to search for in `str`.
+ * @return The starting and ending index of the first full occurrence of
+ *   `sub_str` in `str`. If no full occurrence is found, null is returned
+ *   instead.
+ */
+std::optional<index_range> DutchKBQADSCreate::index_bounds_of_substring_in_string(const std::string &str,
+                                                                                  const std::string &sub_str) {
+    std::string::size_type pos = str.find(sub_str, 0);
+    if (pos == std::string::npos) {
+        return std::nullopt;
+    } else {
+        return index_range(pos, pos + sub_str.size() - 1);  /* Recall: both ends inclusive. */
+    }
+}
+
+/**
+ * @brief Attempts to replace `original` in the string `str` by replacement
+ *   `replacement`.
+ *
+ * @param str The string in which to replace the substring `original`.
+ * @param original The substring to replace.
+ * @param replacement The replacement for `original`.
+ * @return Whether the replacement operation succeeded (`true`) or not
+ *   (`false`).
+ */
+bool DutchKBQADSCreate::substring_replacement_success(std::string &str,
+                                                      const std::string &original,
+                                                      const std::string &replacement) {
+    const std::string &from = original;
+    const std::string &to = replacement;
+    const std::size_t start_pos = str.find(from);
+    if (start_pos == std::string::npos) {
+        /* Couldn't find substring in string. Can't replace. */
+        return false;
+    } else {
+        str.replace(start_pos, from.length(), to);
+        return true;
+    }
 }

@@ -97,14 +97,36 @@ void DutchKBQADSCreate::save_question_entities_properties_map(const q_ent_prp_ma
 }
 
 /**
- * @brief Returns the questions-to-entities-and-properties map, loaded from disk.
+ * @brief Returns the questions-to-entities-and-properties map as a JSON object
+ *   loaded from disk.
  *
  * @param split The LC-QuAD 2.0 dataset split to load the map of.
- * @return The map.
+ * @return The map, represented as a JSON object.
  */
-Json::Value DutchKBQADSCreate::loaded_question_entities_properties_map(const LCQuADSplit &split) {
+Json::Value DutchKBQADSCreate::loaded_json_question_entities_properties_map(const LCQuADSplit &split) {
     return json_loaded_from_dataset_file(supplements_dir /
                                          question_entities_properties_map_file_name(split));
+}
+
+/**
+ * @brief Returns the questions-to-entities-and-properties map as a C++ map
+ *   loaded from disk.
+ *
+ * @param split The LC-QuAD 2.0 dataset split to load the map of.
+ * @return The map, represented as a C++ map.
+ */
+q_ent_prp_map DutchKBQADSCreate::loaded_question_entities_properties_map(const LCQuADSplit &split) {
+    q_ent_prp_map m;
+    const Json::Value json = loaded_json_question_entities_properties_map(split);
+    for (const auto &member_str : json.getMemberNames()) {
+        int member = std::stoi(member_str);
+        std::set<std::string> ent_prp_set;
+        for (const auto &ent_or_prp : json[member_str]) {
+            ent_prp_set.insert(ent_or_prp.asString());
+        }
+        m.insert({ member, ent_prp_set });
+    }
+    return m;
 }
 
 /**

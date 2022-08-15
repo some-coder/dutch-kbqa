@@ -4,13 +4,9 @@
 #define LONGEST_COMMON_SUBSTRING_HPP
 
 #include "explicit-state.hpp"
+#include "utilities.hpp"
 
 namespace DutchKBQADSCreate::SuffixTrees {
-    /**
-     * @brief An index range. The first entry in this pair is the starting
-     *   index; the second entry is the ending index. Both ends are inclusive.
-     */
-    using index_range = std::pair<int, int>;
     /**
      * @brief A character pair. The first entry stores a symbol to separate two
      *   strings; the second stores a symbol to terminate the second string
