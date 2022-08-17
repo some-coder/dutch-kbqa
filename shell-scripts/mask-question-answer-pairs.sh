@@ -7,7 +7,6 @@ cmake --build build
 	--task "mask-question-answer-pairs" \
 	--split "$SPLIT" \
 	--language "$TARGET_LANGUAGE" \
-	--fraction-match-threshold $MASK_MATCHING_THRESHOLD \
 	--quiet "false"
 
 cd ../..

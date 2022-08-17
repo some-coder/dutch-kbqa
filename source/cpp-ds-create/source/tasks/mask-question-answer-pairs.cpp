@@ -7,7 +7,6 @@
 #include "tasks/mask-question-answer-pairs.hpp"
 #include "tasks/collect-entities-properties.hpp"
 #include "tasks/label-entities-properties.hpp"
-#include "suffix-trees/longest-common-substring.hpp"
 #include "utilities.hpp"
 
 using namespace DutchKBQADSCreate;
@@ -41,8 +40,6 @@ DutchKBQADSCreate::LabelMatch::LabelMatch(const std::string &label,
     this->ent_or_prp = ent_or_prp;
     this->label = label;
     this->match_bounds = match_bounds;
-    this->chars_matched = this->label.size();
-    this->fraction_matched = static_cast<double>(this->chars_matched) / static_cast<double>(this->label.size());
 }
 
 
@@ -208,18 +205,13 @@ std::vector<QuestionAnswerPair> DutchKBQADSCreate::question_answer_pairs(const L
  * @param labels The labels for `ent_or_prp`.
  * @param map A mapping from entities and properties to labels. The entities
  *   and properties that previously have already received a label.
- * @param fraction_match_threshold A threshold that determines when to accept a
- *   label match: if the match's fraction of characters that got matched is
- *   equal to or greater than `fraction_match_threshold`, the label match gets
- *   accepted.
  * @return The label to use, or a null value if no appropriate label could be
  *   found.
  */
 ent_or_prp_chosen_label DutchKBQADSCreate::selected_label_for_entity_or_property(const std::string &question,
                                                                                  const std::string &ent_or_prp,
                                                                                  const std::vector<std::string> &labels,
-                                                                                 const ent_prp_chosen_label_map &map,
-                                                                                 double fraction_match_threshold) {
+                                                                                 const ent_prp_chosen_label_map &map) {
     if (labels.empty()) {
         /* No labels exist for this entity or property. Skip. */
         return std::nullopt;
@@ -235,8 +227,7 @@ ent_or_prp_chosen_label DutchKBQADSCreate::selected_label_for_entity_or_property
         }
     }
     std::optional<LabelMatch> best = LabelMatch::best_label_match(label_matches);
-    if (best.has_value() &&
-        best.value().fraction_matched >= fraction_match_threshold) {
+    if (best.has_value()) {
         return std::pair<std::string, LabelMatch>(ent_or_prp, best.value());
     } else {
         return std::nullopt;
@@ -252,10 +243,6 @@ ent_or_prp_chosen_label DutchKBQADSCreate::selected_label_for_entity_or_property
  * @param entities_properties The question's entities and properties.
  * @param ent_prp_labels A mapping from entities and properties to zero or more
  *   labels.
- * @param fraction_match_threshold A threshold that determines when to accept a
- *   label match: if the match's fraction of characters that got matched is
- *   equal to or greater than `fraction_match_threshold`, the label match gets
- *   accepted.
  * @return For each entity and property of the question, a single (substring of a)
  *   label, representing the selected label. Null is returned if one or more
  *   entities or properties could not be assigned a satisfactory label.
@@ -263,8 +250,7 @@ ent_or_prp_chosen_label DutchKBQADSCreate::selected_label_for_entity_or_property
 ent_prp_chosen_label_map DutchKBQADSCreate::selected_labels_for_entities_and_properties(
         const std::string &question,
         const std::set<std::string> &entities_properties,
-        const DutchKBQADSCreate::ent_prp_label_map &ent_prp_labels,
-        double fraction_match_threshold) {
+        const DutchKBQADSCreate::ent_prp_label_map &ent_prp_labels) {
     ent_prp_chosen_label_map map = std::map<std::string, LabelMatch>();
     for (const auto &ent_or_prp : entities_properties) {
         /* Try to associate entities and properties to appropriate labels. */
@@ -272,8 +258,7 @@ ent_prp_chosen_label_map DutchKBQADSCreate::selected_labels_for_entities_and_pro
         ent_or_prp_chosen_label label = selected_label_for_entity_or_property(question,
                                                                               ent_or_prp,
                                                                               ent_or_prp_labels,
-                                                                              map,
-                                                                              fraction_match_threshold);
+                                                                              map);
         if (label.has_value()) {
             map->insert(label.value());
         } else {
@@ -362,21 +347,15 @@ void DutchKBQADSCreate::mask_single_entity_or_property_in_answer(std::string &a,
  * @param entities_properties The unique entities and properties present within
  *   this question-answer pair.
  * @param ent_prp_labels A mapping from entities and properties to labels.
- * @param fraction_match_threshold A threshold that determines when to accept a
- *   label match: if the match's fraction of characters that got matched is
- *   equal to or greater than `fraction_match_threshold`, the label match gets
- *   accepted.
  * @return The masked equivalent of `qa_pair`.
  */
 std::optional<QuestionAnswerPair> DutchKBQADSCreate::masked_question_answer_pair(
         const QuestionAnswerPair &qa_pair,
         const std::set<std::string> &entities_properties,
-        const ent_prp_label_map &ent_prp_labels,
-        double fraction_match_threshold) {
+        const ent_prp_label_map &ent_prp_labels) {
     ent_prp_chosen_label_map labels_map = selected_labels_for_entities_and_properties(qa_pair.q,
                                                                                       entities_properties,
-                                                                                      ent_prp_labels,
-                                                                                      fraction_match_threshold);
+                                                                                      ent_prp_labels);
     if (!labels_map.has_value()) {
         /* One or more entities and/or properties haven't gotten an appropriate
          * label assigned to them; masking cannot be performed. */
@@ -412,16 +391,11 @@ std::optional<QuestionAnswerPair> DutchKBQADSCreate::masked_question_answer_pair
  * @param split The LC-QuAD 2.0 dataset split to target.
  * @param language The natural language to target. Is the natural language of
  *   the translation, not that of the original LC-QuAD 2.0 dataset.
- * @param fraction_match_threshold A threshold that determines when to accept a
- *   label match: if the match's fraction of characters that got matched is
- *   equal to or greater than `fraction_match_threshold`, the label match gets
- *   accepted.
  * @param quiet Whether to report on progress (`false`) or not (`true`).
  * @return The masked question-answer pairs as a JSON object.
  */
 Json::Value DutchKBQADSCreate::masked_question_answer_pairs(const LCQuADSplit &split,
                                                             const NaturalLanguage &language,
-                                                            double fraction_match_threshold,
                                                             bool quiet) {
     Json::Value json;
     const std::vector<QuestionAnswerPair> qa_pairs = question_answer_pairs(split, language);
@@ -434,8 +408,7 @@ Json::Value DutchKBQADSCreate::masked_question_answer_pairs(const LCQuADSplit &s
                                                                                      ent_prp_labels);
         const std::optional<QuestionAnswerPair> masked = masked_question_answer_pair(qa_pair,
                                                                                      question_entities_properties,
-                                                                                     q_ent_prp_labels,
-                                                                                     fraction_match_threshold);
+                                                                                     q_ent_prp_labels);
         if (masked.has_value()) {
             Json::Value json_masked_qa_pair;
             json_masked_qa_pair["q"] = masked.value().q;
@@ -487,8 +460,7 @@ void DutchKBQADSCreate::save_masked_question_answer_pairs_json(const Json::Value
 void DutchKBQADSCreate::mask_question_answer_pairs(const po::variables_map &vm) {
     const std::vector<std::string> required_flags = { "split",
                                                       "language",
-                                                      "quiet",
-                                                      "fraction-match-threshold" };
+                                                      "quiet" };
     for (const auto &required_flag : required_flags) {
         if (vm.count(required_flag) == 0) {
             throw std::invalid_argument(std::string("The \"--") +
@@ -498,12 +470,8 @@ void DutchKBQADSCreate::mask_question_answer_pairs(const po::variables_map &vm) 
     }
     const LCQuADSplit split = string_to_lc_quad_split_map.at(vm["split"].as<std::string>());
     const NaturalLanguage language = string_to_natural_language_map.at(vm["language"].as<std::string>());
-    const double fraction_match_threshold = vm["fraction-match-threshold"].as<double>();
     const bool quiet = vm["quiet"].as<bool>();
-    Json::Value json = masked_question_answer_pairs(split,
-                                                   language,
-                                                   fraction_match_threshold,
-                                                   quiet);
+    Json::Value json = masked_question_answer_pairs(split, language, quiet);
     std::cout << "Saving... ";
     save_masked_question_answer_pairs_json(json, split, language);
     std::cout << "Done." << std::endl;

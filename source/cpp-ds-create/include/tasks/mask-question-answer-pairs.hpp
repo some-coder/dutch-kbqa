@@ -78,14 +78,6 @@ namespace DutchKBQADSCreate {
          * @brief The index boundaries of this label match within the question.
          */
         index_range match_bounds;
-        /* @brief The absolute number of label characters that got matched in
-         *   the question.
-         */
-        std::string::size_type chars_matched;
-        /* @brief The fraction of label characters that got matched in the
-         *   question.
-         */
-        double fraction_matched;
 
         LabelMatch(const std::string &label,
                    const index_range &match_bounds,
@@ -104,14 +96,12 @@ namespace DutchKBQADSCreate {
         const std::string &question,
         const std::string &ent_or_prp,
         const std::vector<std::string> &labels,
-        const ent_prp_chosen_label_map &map,
-        double fraction_match_threshold
+        const ent_prp_chosen_label_map &map
     );
     DutchKBQADSCreate::ent_prp_chosen_label_map selected_labels_for_entities_and_properties(
         const std::string &question,
         const std::set<std::string> &entities_properties,
-        const ent_prp_label_map &ent_prp_labels,
-        double fraction_match_threshold
+        const ent_prp_label_map &ent_prp_labels
     );
     void mask_single_entity_or_property_in_question(std::string &q,
                                                     const LabelMatch &match,
@@ -124,12 +114,10 @@ namespace DutchKBQADSCreate {
     std::optional<DutchKBQADSCreate::QuestionAnswerPair> masked_question_answer_pair(
         const QuestionAnswerPair &qa_pair,
         const std::set<std::string> &entities_properties,
-        const ent_prp_label_map &ent_prp_labels,
-        double fraction_match_threshold
+        const ent_prp_label_map &ent_prp_labels
     );
     Json::Value masked_question_answer_pairs(const LCQuADSplit &split,
                                              const NaturalLanguage &language,
-                                             double fraction_match_threshold,
                                              bool quiet);
     void save_masked_question_answer_pairs_json(const Json::Value &json,
                                                 const LCQuADSplit &split,

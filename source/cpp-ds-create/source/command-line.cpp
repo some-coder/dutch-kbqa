@@ -50,11 +50,8 @@ vm_desc_pair DutchKBQADSCreate::dutch_kbqa_vm_desc_pair(int argc, char *argv[]) 
          "The name of the file to load from.")
         ("save-file-name",
          po::value<std::string>(),
-         "The name of the file to save to.")
-        ("fraction-match-threshold",
-         po::value<double>(),
-         "A fraction. A threshold value determining masking strictness.");
-    
+         "The name of the file to save to.");
+
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm); 
