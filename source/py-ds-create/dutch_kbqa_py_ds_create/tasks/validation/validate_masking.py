@@ -3,7 +3,6 @@ question-answer pairs.
 """
 
 import re
-import copy
 from pathlib import Path
 from dutch_kbqa_py_ds_create.utilities import json_loaded_from_disk, \
                                               QuestionAnswerPair
@@ -31,6 +30,9 @@ def mask_file_to_masked_qa_pairs_map(mask_file: Dict[str, Any]) -> \
     return masks_map
 
 
+# A mapping to two sub-maps: 'forward' and 'backward'. The 'forward' sub-map
+# maps from original entity and property symbols to 'switched' ones; the
+# 'backward' sub-map performs a precisely inverse mapping.
 SWITCH_MAP: Dict[SymbolSwitchDirection, Dict[str, str]] = \
     {'forward': {'P': 'R',
                  'Q': 'S'},
@@ -40,6 +42,17 @@ SWITCH_MAP: Dict[SymbolSwitchDirection, Dict[str, str]] = \
 
 def switched_mask_symbol(mask: str,
                          direction: SymbolSwitchDirection) -> str:
+    """'Switches' an entity or property mask's first letter (its 'symbol') from
+    an original state to a 'switched' state, or vice-versa.
+
+    'Switching' means: replacing the symbol by another similar but different
+    one. Switching is useful when attempting to relate masks from one file to
+    another, as it avoids confusing masks between the two.
+    
+    :param mask: The mask to 'switch' from its original state to a 'switched'
+        state, or vice-versa, depending on `direction`.
+    :param direction: The direction of the switch.
+    """
     legal_keys: List[str] = list(SWITCH_MAP[direction].keys())
     assert(re.search(f'^[{"".join(legal_keys)}][0-9]+$', mask))
     for key, switch_symbol in SWITCH_MAP[direction].items():
@@ -51,6 +64,16 @@ def switched_mask_symbol(mask: str,
 def sentence_mask_symbols_switched(sen: str,
                                    direction: SymbolSwitchDirection) -> \
         QuestionAnswerPair:
+    """'Switches' entity and property masks' first letters (their 'symbols')
+    from their original states to 'switched' counterpart states, or vice-versa.
+
+    'Switching' means: replacing the symbol by another similar but different
+    one. Switching is useful when attempting to relate masks from one file to
+    another, as it avoids confusing masks between the two.
+
+    :param sen: The sentence in which to perform mask symbol switching.
+    :param direction: The direction of the switch.
+    """
     original_keys: List[str] = list(SWITCH_MAP[direction].keys())
     to_switch = re.findall(f'[{"".join(original_keys)}][0-9]+', sen)
     for symbol_to_switch in to_switch:

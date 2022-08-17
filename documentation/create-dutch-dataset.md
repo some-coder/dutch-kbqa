@@ -97,5 +97,9 @@ Fourth, for each unique WikiData entity and property, generate labels for these 
 (set -a .env && source .env && ./shell-scripts/label-entities-and-properties.sh)
 ```
 
-(More information will follow.)
+Fifth, 'mask' entities and properties in the question-answer pairs:
+
+```sh
+(set -a .env && source .env && ./shell-scripts/mask-question-answer-pairs.sh)
+```
 
