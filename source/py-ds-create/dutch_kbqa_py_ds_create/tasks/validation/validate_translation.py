@@ -4,10 +4,11 @@ from pathlib import Path
 from dutch_kbqa_py_ds_create.utilities import json_loaded_from_disk
 
 
-def validate_against_reference(proposal_file: Path,
-                               reference_file: Path) -> bool:
-    """Determines whether JSON file `proposal_file`'s key-values
-    match those of `reference_file`'s.
+def validate_translation_against_reference(proposal_file: Path,
+                                           reference_file: Path) -> bool:
+    """Determines whether JSON file `proposal_file`'s contents match those of
+    `reference_file`'s. Meant for comparison of two translations of the same
+    LC-QuAD 2.0 dataset split, e.g. at different times.
     
     We only check for the keys existing in `proposal_file`; keys in
     `reference_file` but not in `proposal_file` are ignored.

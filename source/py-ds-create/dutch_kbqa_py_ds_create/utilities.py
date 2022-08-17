@@ -5,7 +5,7 @@ import json
 import platform
 from pathlib import Path
 from enum import Enum
-from typing import Union, Literal, Dict, Any, Optional
+from typing import Union, Literal, Dict, Any, Optional, NamedTuple
 
 
 # Absolute file system path to the package's root (base) directory.
@@ -81,3 +81,40 @@ def save_json_to_disk(contents: Dict[str, Any],
         raise RuntimeError(f'File \'{location.resolve()}\' was not found!')
     except IOError as error:
         raise RuntimeError(f'An IO error occurred: \'{error}\'.')
+
+
+class QuestionAnswerPair:
+    """A question-answer pair of from a (modified) LC-QuAD 2.0 dataset
+    split.
+    """
+
+    class Part(Enum):
+        """A part of a question-answer pair: the question or the answer."""
+        QUESTION = 'question'
+        ANSWER = 'answer'
+
+    def __init__(self, uid: int, question: str, answer: str) -> None:
+        """Constructs a question-answer pair.
+        
+        :param uid: The pair's unique identifier.
+        :param question: The pair's question component.
+        :param answer: The pair's answer component.
+        """
+        self.uid = uid
+        self.question = question
+        self.answer = answer
+
+    def part(self, which: Part) -> str:
+        """Returns the requested part of this question-answer pair.
+        
+        :param which: The part to access.
+        :returns: The requested part.
+        :throws: `ValueError` if an unsupported `Part` is requested.
+        """
+        if which == QuestionAnswerPair.Part.QUESTION:
+            return self.question
+        elif which == QuestionAnswerPair.Part.ANSWER:
+            return self.answer
+        else:
+            raise ValueError('Part type \'%s\' not supported!' %
+                             (str(which),))

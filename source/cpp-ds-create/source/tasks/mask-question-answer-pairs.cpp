@@ -3,6 +3,7 @@
 #include <iostream>
 #include <utility>
 #include <cassert>
+#include <regex>
 #include "tasks/mask-question-answer-pairs.hpp"
 #include "tasks/collect-entities-properties.hpp"
 #include "tasks/label-entities-properties.hpp"
@@ -25,42 +26,41 @@ DutchKBQADSCreate::QuestionAnswerPair::QuestionAnswerPair(int uid,
     this->uid = uid;
 }
 
+
 /**
  * @brief Constructs resultant statistics of matching a label to a string.
  *
- * @param question The question to match the label in.
  * @param label The label to use for matching.
+ * @param match_bounds The index bounds of the match with respect ot the
+ *   question the matching operation was performed in.
  * @param ent_or_prp The entity or property associated with this label.
  */
-DutchKBQADSCreate::LabelMatch::LabelMatch(const std::string &question,
-                                          const std::string &label,
+DutchKBQADSCreate::LabelMatch::LabelMatch(const std::string &label,
+                                          const index_range &match_bounds,
                                           const std::string &ent_or_prp) {
     this->ent_or_prp = ent_or_prp;
-    const std::optional<std::string> lcs = SuffixTrees::longest_common_substring(question, label);
-    if (lcs.has_value()) {
-        this->match = std::string(lcs.value());
-        this->match_bounds = index_bounds_of_substring_in_string(question, this->match).value();
-    } else {
-        /* Not even a length-1 substring found. Thus, zero characters got matched. */
-        int no_pos_as_int = static_cast<int>(std::string::npos);
-        this->match = "";
-        this->match_bounds = { no_pos_as_int, no_pos_as_int };  /* Trivial match bounds. */
-    }
-    this->chars_matched = this->match.size();
-    this->fraction_matched = static_cast<double>(this->chars_matched) / static_cast<double>(label.size());
+    this->label = label;
+    this->match_bounds = match_bounds;
+    this->chars_matched = this->label.size();
+    this->fraction_matched = static_cast<double>(this->chars_matched) / static_cast<double>(this->label.size());
 }
 
-/**
- * @brief Compares this label match against another, determining whether this
- *   match should be preferred over `other` when considering which label best
- *   matches against some string.
- *
- * @param other The other label match.
- * @return The question's answer.
- */
-bool DutchKBQADSCreate::LabelMatch::is_better_matching_label_than(const LabelMatch &other) const {
-    return this->fraction_matched > other.fraction_matched;
+
+std::optional<index_range> DutchKBQADSCreate::LabelMatch::match_label_in_sentence(const std::string &label,
+                                                                                  const std::string &sentence) {
+    std::string inner_re = label;
+    inner_re = std::regex_replace(inner_re, std::regex("(\\[)"), "\\[");
+    inner_re = std::regex_replace(inner_re, std::regex("(\\])"), "\\]");
+    std::regex re("(" + inner_re + ")");
+    std::smatch label_re_match;
+    if (std::regex_search(sentence, label_re_match, re)) {
+        int start_idx = static_cast<int>(label_re_match.position(0));
+        return index_range(start_idx, start_idx + label_re_match.length(0) - 1);
+    } else {
+        return std::nullopt;
+    }
 }
+
 
 /**
  * @brief Compares this label match against another, determining whether this
@@ -74,32 +74,32 @@ bool DutchKBQADSCreate::LabelMatch::is_better_matching_label_than(const LabelMat
  * @return The question's answer.
  */
 bool DutchKBQADSCreate::LabelMatch::appears_earlier_in_string(const LabelMatch &first, const LabelMatch &second) {
-    if (first.match_bounds.first != second.match_bounds.first) {
-        return first.match_bounds.first < second.match_bounds.first;
-    } else {
+    if (first.match_bounds.first == second.match_bounds.first) {
         return first.match_bounds.second < second.match_bounds.second;
+    } else {
+        return first.match_bounds.first < second.match_bounds.first;
     }
 }
 
+
 /**
- * @brief Returns the best-matched label with respect to some question.
+ * @brief Returns the best-matched label with respect to some question, or null
+ *   if none of the labels is satisfactory.
  *
- * This method assumes `matches` is a non-empty vector; if it is, this method
- * will throw an assertion error.
- *
- * @param matches Label matches for the question.
- * @return The best match.
+ * @param matches Label matches for the question. Possibly empty. Note that
+ *   some label "matches" may not have matched at all; these will have their
+ *   `match_bounds` field set to the special `std::pair` value of
+ *   `{ no_label_match_pos, no_label_match_pos }`.
+ * @return The best match, or null if no satisfactory match could be found.
  */
-LabelMatch DutchKBQADSCreate::LabelMatch::best_label_match(const std::vector<LabelMatch> &matches) {
-    assert(!matches.empty());
-    LabelMatch best = matches[0];
-    for (std::size_t idx = 1; idx < matches.size(); idx++) {
-        const LabelMatch &candidate = matches[idx];
-        if (candidate.is_better_matching_label_than(best)) {
-            best = candidate;
+std::optional<LabelMatch> DutchKBQADSCreate::LabelMatch::best_label_match(const std::vector<LabelMatch> &matches) {
+    for (const auto &candidate : matches) {
+        if (candidate.match_bounds.first != no_label_match_pos &&
+            candidate.match_bounds.second != no_label_match_pos) {
+            return candidate;
         }
     }
-    return best;
+    return std::nullopt;
 }
 
 /**
@@ -114,14 +114,14 @@ void DutchKBQADSCreate::LabelMatch::sorted_label_matches(std::vector<LabelMatch>
 }
 
 /**
- * @brief Determines whether collisions exist within the sorted series of label
+ * @brief Determines whether collisions exist within the series of label
  *   matches `matches`.
  *
- * @param matches The series of label matches. Must have been sorted
- *   by index bounds, ascendingly, beforehand.
+ * @param matches The series of label matches.
  * @return The question's answer.
  */
-bool DutchKBQADSCreate::LabelMatch::collision_present_in_label_matches(const std::vector<LabelMatch> &matches) {
+bool DutchKBQADSCreate::LabelMatch::collision_present_in_label_matches(std::vector<LabelMatch> matches) {
+    LabelMatch::sorted_label_matches(matches);
     if (matches.size() < 2) {
         return false;  /* No collisions possible. */
     }
@@ -206,6 +206,8 @@ std::vector<QuestionAnswerPair> DutchKBQADSCreate::question_answer_pairs(const L
  * @param question The question.
  * @param ent_or_prp The entity or property.
  * @param labels The labels for `ent_or_prp`.
+ * @param map A mapping from entities and properties to labels. The entities
+ *   and properties that previously have already received a label.
  * @param fraction_match_threshold A threshold that determines when to accept a
  *   label match: if the match's fraction of characters that got matched is
  *   equal to or greater than `fraction_match_threshold`, the label match gets
@@ -215,7 +217,8 @@ std::vector<QuestionAnswerPair> DutchKBQADSCreate::question_answer_pairs(const L
  */
 ent_or_prp_chosen_label DutchKBQADSCreate::selected_label_for_entity_or_property(const std::string &question,
                                                                                  const std::string &ent_or_prp,
-                                                                                 const std::set<std::string> &labels,
+                                                                                 const std::vector<std::string> &labels,
+                                                                                 const ent_prp_chosen_label_map &map,
                                                                                  double fraction_match_threshold) {
     if (labels.empty()) {
         /* No labels exist for this entity or property. Skip. */
@@ -223,11 +226,18 @@ ent_or_prp_chosen_label DutchKBQADSCreate::selected_label_for_entity_or_property
     }
     std::vector<LabelMatch> label_matches;
     for (const auto &label : labels) {
-        label_matches.emplace_back(question, label, ent_or_prp);
+        std::optional<index_range> match_bounds = LabelMatch::match_label_in_sentence(label, question);
+        if (!match_bounds.has_value()) {
+            std::pair<int, int> empty_match_bounds = { no_label_match_pos, no_label_match_pos };
+            label_matches.emplace_back(label, empty_match_bounds, ent_or_prp);
+        } else {
+            label_matches.emplace_back(label, match_bounds.value(), ent_or_prp);
+        }
     }
-    LabelMatch best = LabelMatch::best_label_match(label_matches);
-    if (best.fraction_matched >= fraction_match_threshold) {
-        return std::pair<std::string, std::string>(ent_or_prp, best.match);
+    std::optional<LabelMatch> best = LabelMatch::best_label_match(label_matches);
+    if (best.has_value() &&
+        best.value().fraction_matched >= fraction_match_threshold) {
+        return std::pair<std::string, LabelMatch>(ent_or_prp, best.value());
     } else {
         return std::nullopt;
     }
@@ -255,13 +265,14 @@ ent_prp_chosen_label_map DutchKBQADSCreate::selected_labels_for_entities_and_pro
         const std::set<std::string> &entities_properties,
         const DutchKBQADSCreate::ent_prp_label_map &ent_prp_labels,
         double fraction_match_threshold) {
-    ent_prp_chosen_label_map map = std::map<std::string, std::string>();
+    ent_prp_chosen_label_map map = std::map<std::string, LabelMatch>();
     for (const auto &ent_or_prp : entities_properties) {
         /* Try to associate entities and properties to appropriate labels. */
-        const std::set<std::string> ent_or_prp_labels = string_set_from_string_vec(ent_prp_labels.at(ent_or_prp));
+        const std::vector<std::string> &ent_or_prp_labels = ent_prp_labels.at(ent_or_prp);
         ent_or_prp_chosen_label label = selected_label_for_entity_or_property(question,
                                                                               ent_or_prp,
                                                                               ent_or_prp_labels,
+                                                                              map,
                                                                               fraction_match_threshold);
         if (label.has_value()) {
             map->insert(label.value());
@@ -315,7 +326,7 @@ void DutchKBQADSCreate::mask_single_entity_or_property_in_question(std::string &
         /* Mask name already exists. Use it. */
         replacement = potential_replacement->second;
     }
-    substring_replacement_success(q, match.match, replacement);
+    q = std::regex_replace(q, std::regex("(" + match.label + ")"), replacement);
 }
 
 /**
@@ -338,10 +349,10 @@ void DutchKBQADSCreate::mask_single_entity_or_property_in_answer(std::string &a,
                                  "mask map is missing for \"" +
                                  match.ent_or_prp +
                                  "\" (" +
-                                 match.match +
+                                 match.label +
                                  ")!");
     }
-    while (substring_replacement_success(a, match.ent_or_prp, potential_replacement->second));
+    a = std::regex_replace(a, std::regex("(" + match.ent_or_prp + ")"), potential_replacement->second);
 }
 
 /**
@@ -372,17 +383,16 @@ std::optional<QuestionAnswerPair> DutchKBQADSCreate::masked_question_answer_pair
         return std::nullopt;
     }
     std::vector<LabelMatch> label_matches;
-    for (const auto &entry: labels_map.value()) {
-        label_matches.emplace_back(qa_pair.q, entry.second, entry.first);
+    for (const auto &ent_or_prp : entities_properties) {
+        label_matches.push_back(labels_map.value().at(ent_or_prp));
     }
-    LabelMatch::sorted_label_matches(label_matches);
     if (LabelMatch::collision_present_in_label_matches(label_matches)) {
         return std::nullopt;
     }
     std::string replaced_q = qa_pair.q;
     std::string replaced_a = qa_pair.a;
-    int ent_counter = 0;
-    int prp_counter = 0;
+    int ent_counter = 1;
+    int prp_counter = 1;
     ent_prp_mask_map mask_map;
     for (const auto &label_match : label_matches) {
         mask_single_entity_or_property_in_question(replaced_q,
@@ -490,8 +500,6 @@ void DutchKBQADSCreate::mask_question_answer_pairs(const po::variables_map &vm) 
     const NaturalLanguage language = string_to_natural_language_map.at(vm["language"].as<std::string>());
     const double fraction_match_threshold = vm["fraction-match-threshold"].as<double>();
     const bool quiet = vm["quiet"].as<bool>();
-    const std::vector<QuestionAnswerPair> qa_pairs = question_answer_pairs(split,
-                                                                           language);
     Json::Value json = masked_question_answer_pairs(split,
                                                    language,
                                                    fraction_match_threshold,

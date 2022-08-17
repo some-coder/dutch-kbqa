@@ -11,6 +11,11 @@
 #include "suffix-trees/longest-common-substring.hpp"
 #include "utilities.hpp"
 
+/* Forward-declare the `LabelMatch` structure for usage in type definitions. */
+namespace DutchKBQADSCreate {
+    struct LabelMatch;
+}
+
 namespace DutchKBQADSCreate {
     namespace po = boost::program_options;
     /**
@@ -18,7 +23,7 @@ namespace DutchKBQADSCreate {
      *   no label could be matched (see `selected_label_for_entity_or_property`
      *   below), a null value is stored instead.
      */
-    using ent_or_prp_chosen_label = std::optional<std::pair<std::string, std::string>>;
+    using ent_or_prp_chosen_label = std::optional<std::pair<std::string, LabelMatch>>;
     /**
      * @brief A mapping from entities and properties to associated (substrings
      *   of) labels. If null is stored, this indicates that one or more
@@ -26,7 +31,7 @@ namespace DutchKBQADSCreate {
      *   to an appropriate label. For situations in which this happens, see
      *   the function `selected_label_for_entity_or_property`.
      */
-    using ent_prp_chosen_label_map = std::optional<std::map<std::string, std::string>>;
+    using ent_prp_chosen_label_map = std::optional<std::map<std::string, LabelMatch>>;
     /**
      * @brief A mapping from entities and properties to masks for them within
      *   a to-be-masked question-answer pair.
@@ -46,6 +51,12 @@ namespace DutchKBQADSCreate {
 
         QuestionAnswerPair(int uid, std::string question, std::string answer);
     };
+
+    /**
+     * @brief A special value indicating that no label match could be found.
+     */
+    const int no_label_match_pos = -1;
+
     /**
      * @brief The result of trying to match a label against a question.
      *   'Matching' here means: trying to find the largest possible
@@ -59,11 +70,10 @@ namespace DutchKBQADSCreate {
          */
         std::string ent_or_prp;
         /**
-         * @brief The result of matching the label against the question. A
-         *   substring of label: possibly the empty string or the complete
-         *   label.
+         * @brief The original, complete label, including portions that have
+         *   been removed in finding the longest common substring.
          */
-        std::string match;
+        std::string label;
         /**
          * @brief The index boundaries of this label match within the question.
          */
@@ -77,14 +87,15 @@ namespace DutchKBQADSCreate {
          */
         double fraction_matched;
 
-        LabelMatch(const std::string &question,
-                   const std::string &label,
+        LabelMatch(const std::string &label,
+                   const index_range &match_bounds,
                    const std::string &ent_or_prp);
-        [[nodiscard]] bool is_better_matching_label_than(const LabelMatch &other) const;
+        static std::optional<index_range> match_label_in_sentence(const std::string &label,
+                                                                  const std::string &sentence);
         static bool appears_earlier_in_string(const LabelMatch &first, const LabelMatch &second);
-        static LabelMatch best_label_match(const std::vector<LabelMatch> &matches);
+        static std::optional<LabelMatch> best_label_match(const std::vector<LabelMatch> &matches);
         static void sorted_label_matches(std::vector<LabelMatch> &matches);
-        static bool collision_present_in_label_matches(const std::vector<LabelMatch> &matches);
+        static bool collision_present_in_label_matches(std::vector<LabelMatch> matches);
     };
 
     std::vector<DutchKBQADSCreate::QuestionAnswerPair> question_answer_pairs(const LCQuADSplit &split,
@@ -92,7 +103,8 @@ namespace DutchKBQADSCreate {
     DutchKBQADSCreate::ent_or_prp_chosen_label selected_label_for_entity_or_property(
         const std::string &question,
         const std::string &ent_or_prp,
-        const std::set<std::string> &labels,
+        const std::vector<std::string> &labels,
+        const ent_prp_chosen_label_map &map,
         double fraction_match_threshold
     );
     DutchKBQADSCreate::ent_prp_chosen_label_map selected_labels_for_entities_and_properties(

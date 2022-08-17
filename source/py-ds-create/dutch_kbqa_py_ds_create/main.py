@@ -5,8 +5,10 @@ from pathlib import Path
 from dutch_kbqa_py_ds_create.lc_quad_2_0 import DATASET_DIR, Split
 from dutch_kbqa_py_ds_create.tasks.translate import \
     translate_complete_dataset_split_questions
-from dutch_kbqa_py_ds_create.tasks.validate import \
-    validate_against_reference
+from dutch_kbqa_py_ds_create.tasks.validation.validate_translation import \
+    validate_translation_against_reference
+from dutch_kbqa_py_ds_create.tasks.validation.validate_masking import \
+    validate_masking_against_reference
 from dutch_kbqa_py_ds_create.tasks.replace_errors import replace_errors
 from dutch_kbqa_py_ds_create.utilities import NaturalLanguage 
 from enum import Enum
@@ -45,8 +47,9 @@ def interpret_boolean_argument_parser_choice(choice: str) -> bool:
 class TaskType(Enum):
     """A type of task to perform."""
     TRANSLATE = 'translate'
-    VALIDATE = 'validate'
     REPLACE_ERRORS = 'replace-errors'
+    VALIDATE_TRANSLATION = 'validate-translation'
+    VALIDATE_MASKING = 'validate-masking'
 
 
 def dutch_kbqa_python_dataset_creation_argument_parser() -> ArgumentParser:
@@ -141,15 +144,19 @@ def act_on_dutch_kbqa_dataset_creation_dict(di: DutchKBQADSCreationDict) -> \
                                                    di['save_file_name'],
                                                    di['save_frequency'],
                                                    di['quiet'])
-    elif di['task'] == TaskType.VALIDATE:
-        result = validate_against_reference(proposal_file=di['save_file_name'],
-                                            reference_file=di['reference_file_name'])
-        print('Are the same? %s.' % (result,))
     elif di['task'] == TaskType.REPLACE_ERRORS:
         replace_errors(di['load_file_name'],
                        di['save_file_name'],
                        di['split'],
                        di['language'])
+    elif di['task'] == TaskType.VALIDATE_TRANSLATION:
+        result = validate_translation_against_reference(proposal_file=di['save_file_name'],
+                                                        reference_file=di['reference_file_name'])
+        print('Are the same? %s.' % (result,))
+    elif di['task'] == TaskType.VALIDATE_MASKING:
+        result = validate_masking_against_reference(proposal_file=di['save_file_name'],
+                                                    reference_file=di['reference_file_name'])
+        print('Are the same? %s.' % (result,))
     else:
         raise NotImplementedError(f'Task type \'{di["task"]}\' not yet ' +
                                   'supported.')
