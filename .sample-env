@@ -50,6 +50,15 @@ TRANSLATE_SAVE_FREQ=50
 LABEL_LANGUAGE="$SOURCE_LANGUAGE"
 
 
+# `VALIDATION_FRACTION` stores a fraction (0.0 and 1.0 both inclusive) that
+# describes how large a fraction of the total amount of question-answer pairs
+# in the original training partition of LC-QuAD 2.0 should go to the derived
+# dataset's 'validation' subset; the remainder is sent to the 'train' subset.
+#   (This environment variable has no effect on the 'test' part of the original
+# LC-QuAD 2.0 dataset.)
+VALIDATION_FRACTION="$(echo "(5 * (10^2)) / ((4 * (10^3)) + (5 * (10^2)))" | bc -l)"
+
+
 # (Optional.) `$REFERENCE_TRANSLATED_FILE` stores the file system location of a
 # 'reference translation' of the LC-QuAD 2.0 dataset in `$TARGET_LANGUAGE`.
 #   If supplied, you can run the program

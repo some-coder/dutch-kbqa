@@ -38,7 +38,7 @@ FileNotFoundReaction = Union[Literal['throw-error'],
 
 
 def json_loaded_from_disk(location: Path,
-                          upon_file_not_found: FileNotFoundError) -> \
+                          upon_file_not_found: FileNotFoundReaction) -> \
         Optional[Dict[str, Any]]:
     """Returns the contents of `location`, interpreted as JSON.
 
@@ -118,3 +118,16 @@ class QuestionAnswerPair:
         else:
             raise ValueError('Part type \'%s\' not supported!' %
                              (str(which),))
+
+
+def ensure_directory_exists(location: Path) -> None:
+    """Ensures the directory at location `location` exists.
+    
+    If it does not, this function tries to create it.
+
+    :param location: The location the directory should be at.
+    """
+    if not os.path.exists(location):
+        os.makedirs(location)
+        print('Created directory \'%s\' as it wasn\'t there yet.' %
+              (str(location.resolve()),))
