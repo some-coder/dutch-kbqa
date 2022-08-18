@@ -1,9 +1,11 @@
 # Create the derived Dutch dataset from LC-QuAD 2.0
 
-The creation of the dataset consists of five steps:
+The creation of the dataset consists of two steps:
 
 1. Translate the original LC-QuAD 2.0 dataset into Dutch.
-2. Replace various symbols.
+2. Post-process the dataset.
+
+Perform the two steps in order as explained below.
 
 ## Step 1: Translate LC-QuAD 2.0 into Dutch
 
@@ -67,27 +69,27 @@ cmake --build build/  # this may take a while
 
 ### Step 2.2: Post-process the dataset
 
-Perform each of the following for both the `"train"` and `"test"` dataset splits of LC-QuAD 2.0. You do so by first executing the steps below with your `.env`'s `$SPLIT` environment variable set to `"train"`; then, you repeat the steps below once more, but now with `$SPLIT` set to `"test"`.
+Perform the following 6 steps in order for both the `"train"` and `"test"` dataset splits of LC-QuAD 2.0. You do so by first executing the steps below with your `.env`'s `$SPLIT` environment variable set to `"train"`; then, you repeat the steps below once more, but now with `$SPLIT` set to `"test"`.
 
-First, replace various special symbols:
+**Step 1.** Replace various special symbols:
 
 ```sh
 (set -a .env && source .env && ./shell-scripts/replace-special-symbols.sh)
 ```
 
-Second, replace `ERROR`s by proper references:
+**Step 2.** Replace `ERROR`s by proper references:
 
 ```sh
 (set -a .env && source .env && ./shell-scripts/replace-errors.sh)
 ```
 
-Third, per question, collect the WikiData entities and properties present in said questions:
+**Step 3.** Per question, collect the WikiData entities and properties present in said questions:
 
 ```sh
 (set -a .env && source .env && ./shell-scripts/generate-question-entities-properties-map.sh)
 ```
 
-Fourth, for each unique WikiData entity and property, generate labels for these entities and properties. Run this step one time with the environment variable `$LABEL_LANGUAGE` set to `$SOURCE_LANGUAGE`, and one time with `$LABEL_LANGUAGE` set to `$TARGET_LANGUAGE`:
+**Step 4.** For each unique WikiData entity and property, generate labels for these entities and properties. Run this step one time with the environment variable `$LABEL_LANGUAGE` set to `$SOURCE_LANGUAGE`, and one time with `$LABEL_LANGUAGE` set to `$TARGET_LANGUAGE`:
 
 ```sh
 # First run: In your `.env`, set `$LABEL_LANGUAGE` to `$SOURCE_LANGUAGE`. Then run the line below:
@@ -97,9 +99,17 @@ Fourth, for each unique WikiData entity and property, generate labels for these 
 (set -a .env && source .env && ./shell-scripts/label-entities-and-properties.sh)
 ```
 
-Fifth, 'mask' entities and properties in the question-answer pairs:
+**Step 5.** 'Mask' entities and properties in the question-answer pairs:
 
 ```sh
 (set -a .env && source .env && ./shell-scripts/mask-question-answer-pairs.sh)
 ```
+
+**Step 6.** Call the finalisation operation:
+
+```sh
+(set -a .env && source .env && ./shell-scripts/finalise-dataset.sh)
+```
+
+If you have performed steps 1 up until 6 for both the `"train"` and `"test"` dataset splits of LC-QuAD 2.0, you have successfully created a derived counterpart to LC-QuAD 2.0; it can now be used for model training.
 
