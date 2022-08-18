@@ -5,7 +5,7 @@ import json
 import platform
 from pathlib import Path
 from enum import Enum
-from typing import Union, Literal, Dict, Any, Optional, NamedTuple
+from typing import Union, Literal, Dict, Any, Optional, List
 
 
 # Absolute file system path to the package's root (base) directory.
@@ -131,3 +131,20 @@ def ensure_directory_exists(location: Path) -> None:
         os.makedirs(location)
         print('Created directory \'%s\' as it wasn\'t there yet.' %
               (str(location.resolve()),))
+
+
+def only_unique(li: List[str]) -> List[str]:
+    """Returns the list with only the unique values stored within it.
+    
+    Importantly, this function preserves the order of `li`, unlike a simpler
+    call to `list(set(li))`. Prefer this method if preserving order is
+    important.
+
+    :param li: The list to get only the unique values of.
+    :returns: `li`, but with only the unique values. Order is preserved.
+    """
+    unique: List[str] = []
+    for entry in li:
+        if entry not in unique:
+            unique.append(entry)
+    return unique

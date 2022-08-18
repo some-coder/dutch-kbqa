@@ -6,7 +6,8 @@ from dutch_kbqa_py_ds_create.lc_quad_2_0 import Split, DATASET_DIR
 from dutch_kbqa_py_ds_create.utilities import NaturalLanguage, \
                                               QuestionAnswerPair, \
                                               json_loaded_from_disk, \
-                                              ensure_directory_exists
+                                              ensure_directory_exists, \
+                                              only_unique
 from typing import List, Union, Literal, Dict, Callable, AnyStr, Tuple
 
 
@@ -64,7 +65,8 @@ def answer_with_variables_replaced(answer: str) -> str:
     :returns: The manipulated answer.
     """
     variable_reg_exp = '(\?)[^ ]+'  # e.g. `?ans_1`
-    matches = set(match.group() for match in re.finditer(variable_reg_exp, answer))
+    raw = list(re.finditer(variable_reg_exp, answer))
+    matches = only_unique([match.group() for match in raw])
     for index, match in enumerate(matches):
         answer = re.sub(f'(\\?{match[1:]})', f'var_{index + 1}', answer)
     return answer
@@ -182,6 +184,7 @@ def finalise_dataset_split(split: Split,
         the validation (or, 'development') part of the dataset.
     """
     qa_pairs = loaded_pre_finalised_dataset_split(split, language)
+    qa_pairs = [post_processed_question_answer_pair(pair) for pair in qa_pairs]
     partitioned = partitioned_question_answer_pairs(qa_pairs,
                                                     split,
                                                     fraction_to_validate)
