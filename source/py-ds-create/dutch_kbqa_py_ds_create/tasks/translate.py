@@ -168,6 +168,7 @@ def question_uid_partition(ds_split: List[LCQuADQAPair],
 	"""
 	assert save_freq >= 1
 	uids = list(questions_still_to_translate(ds_split, trl_questions))
+	print(f'Found {len(uids)} questions still to translate.')
 	start_index = 0  # inclusive
 	partition: List[Set[int]] = []
 	while start_index < len(uids):

@@ -56,7 +56,7 @@ LABEL_LANGUAGE="$SOURCE_LANGUAGE"
 # dataset's 'validation' subset; the remainder is sent to the 'train' subset.
 #   (This environment variable has no effect on the 'test' part of the original
 # LC-QuAD 2.0 dataset.)
-VALIDATION_FRACTION="$(echo "(5 * (10^2)) / ((4 * (10^3)) + (5 * (10^2)))" | bc -l)"
+VALIDATION_FRACTION="0.11111111111111111111"
 
 
 # (Optional.) `$REFERENCE_TRANSLATED_FILE` stores the file system location of a
