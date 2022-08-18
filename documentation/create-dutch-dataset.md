@@ -22,10 +22,10 @@ pip3 install -e .
 Once done, return to the project's root directory. (On UNIX machines, `cd ../..` should suffice, for example.) Then, translate the training dataset split of LC-QuAD 2.0 to Dutch by executing
 
 ```sh
-(set -a .env && source .env && ./shell-scripts/translate.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/translate.sh)
 ```
 
-Once this has completed, change line 8 of `shell-scripts/translate.sh` from `  --split "train"` to `  --split "test"`, and execute the command above once more. This will generate translations for the test split.
+Once this has completed, change line 8 of `shell-scripts/create-dataset/translate.sh` from `  --split "train"` to `  --split "test"`, and execute the command above once more. This will generate translations for the test split.
 
 **Note.** This step assumes you already have <a href="https://www.python.org/">Python</a> and <a href="https://docs.python.org/3/library/venv.html">`venv`</a> at your disposal. If not, refer to the links to see how to obtain them for your system.
 
@@ -74,41 +74,41 @@ Perform the following 6 steps in order for both the `"train"` and `"test"` datas
 **Step 1.** Replace various special symbols:
 
 ```sh
-(set -a .env && source .env && ./shell-scripts/replace-special-symbols.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/replace-special-symbols.sh)
 ```
 
 **Step 2.** Replace `ERROR`s by proper references:
 
 ```sh
-(set -a .env && source .env && ./shell-scripts/replace-errors.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/replace-errors.sh)
 ```
 
 **Step 3.** Per question, collect the WikiData entities and properties present in said questions:
 
 ```sh
-(set -a .env && source .env && ./shell-scripts/generate-question-entities-properties-map.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/generate-question-entities-properties-map.sh)
 ```
 
 **Step 4.** For each unique WikiData entity and property, generate labels for these entities and properties. Run this step one time with the environment variable `$LABEL_LANGUAGE` set to `$SOURCE_LANGUAGE`, and one time with `$LABEL_LANGUAGE` set to `$TARGET_LANGUAGE`:
 
 ```sh
 # First run: In your `.env`, set `$LABEL_LANGUAGE` to `$SOURCE_LANGUAGE`. Then run the line below:
-(set -a .env && source .env && ./shell-scripts/label-entities-and-properties.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/label-entities-and-properties.sh)
 
 # Second run: Now set it to `$TARGET_LANGUAGE`. Then run the line below:
-(set -a .env && source .env && ./shell-scripts/label-entities-and-properties.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/label-entities-and-properties.sh)
 ```
 
 **Step 5.** 'Mask' entities and properties in the question-answer pairs:
 
 ```sh
-(set -a .env && source .env && ./shell-scripts/mask-question-answer-pairs.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/mask-question-answer-pairs.sh)
 ```
 
 **Step 6.** Call the finalisation operation:
 
 ```sh
-(set -a .env && source .env && ./shell-scripts/finalise-dataset.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/finalise-dataset.sh)
 ```
 
 If you have performed steps 1 up until 6 for both the `"train"` and `"test"` dataset splits of LC-QuAD 2.0, you have successfully created a derived counterpart to LC-QuAD 2.0; it can now be used for model training.

@@ -11,7 +11,7 @@ If both steps have been taken, execute the following two commands in a terminal:
 
 ```sh
 chmod +x shell-scripts/*.sh  # allow shell scripts to execute
-(set -a .env && source .env && ./shell-scripts/download.sh)
+(set -a .env && source .env && ./shell-scripts/create-dataset/download.sh)
 ```
 
 **Note.** Is `wget` not installed? Download it on your platform. On Ubuntu 20.04 LTS, execute `sudo apt install wget` in a terminal. On macOS, using <a href="https://brew.sh">the Homebrew package manager</a>, execute `brew install wget` in a terminal.
