@@ -25,7 +25,7 @@ Once done, return to the project's root directory. (On UNIX machines, `cd ../..`
 (set -a .env && source .env && ./shell-scripts/create-dataset/translate.sh)
 ```
 
-Once this has completed, change line 8 of `shell-scripts/create-dataset/translate.sh` from `  --split "train"` to `  --split "test"`, and execute the command above once more. This will generate translations for the test split.
+Once this has completed, the `$SPLIT` environment variable of your `.env` from `"train"` to `"test"`, and execute the command above once more. This will generate translations for the test split.
 
 **Note.** This step assumes you already have <a href="https://www.python.org/">Python</a> and <a href="https://docs.python.org/3/library/venv.html">`venv`</a> at your disposal. If not, refer to the links to see how to obtain them for your system.
 
