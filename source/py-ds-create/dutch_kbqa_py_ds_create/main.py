@@ -95,6 +95,8 @@ def dutch_kbqa_python_dataset_creation_argument_parser() -> ArgumentParser:
                         help='A reference file to validate against.')
     parser.add_argument('--quiet',
                         type=str,
+                        help='Whether to run without printing to standard ' +
+                             'output.',
                         choices=ARG_PARSE_BOOLEAN_TRUE + 
                                 ARG_PARSE_BOOLEAN_FALSE)
     return parser

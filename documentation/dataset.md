@@ -10,9 +10,12 @@ For your convenience, however, the shell script `download.sh` may be used to aut
 If both steps have been taken, execute the following two commands in a terminal:
 
 ```sh
-chmod +x shell-scripts/*.sh  # allow shell scripts to execute
+# allow shell scripts to execute
+chmod +x shell-scripts/create-dataset/*.sh
+chmod +x shell-scripts/run-model/*.sh
+
 (set -a .env && source .env && ./shell-scripts/create-dataset/download.sh)
 ```
 
-**Note.** Is `wget` not installed? Download it on your platform. On Ubuntu 20.04 LTS, execute `sudo apt install wget` in a terminal. On macOS, using <a href="https://brew.sh">the Homebrew package manager</a>, execute `brew install wget` in a terminal.
+**Note.** Is `wget` not installed? Download it on your platform. On Ubuntu 22.04 LTS, execute `sudo apt install wget` in a terminal. On macOS, using <a href="https://brew.sh">the Homebrew package manager</a>, execute `brew install wget` in a terminal.
 
