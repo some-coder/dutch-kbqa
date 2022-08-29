@@ -151,7 +151,8 @@ def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
                              'is required to encourage reproducibility in ' +
                              'model results. Take care to switch seeds if ' +
                              'it is your intention to obtain varying ' +
-                             'results.) Must be non-negative.',
+                             'results.) Must be an integer in the range [1, ' +
+                             '2^32 - 1], both ends inclusive.',
                         required=True)
     # Optional or situationally required arguments.
     parser.add_argument('--config_name',

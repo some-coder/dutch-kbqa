@@ -243,6 +243,6 @@ SAVE_FREQUENCY=10
 # `$SEED` stores a pseudo-random number generator (PRNG) initialisation value
 # to use. (This argument is required to encourage reproducibility in model
 # results. Take care to switch seeds if it is your intention to obtain varying
-# results.) Must be non-negative.
+# results.) Must be an integer in the range [1, 2^32 - 1], both ends inclusive.
 SEED=42
 

@@ -27,6 +27,7 @@ eggs/
 wheels/
 *.egg-info/
 *.egg
+*.mypy_cache
 
 # C++
 vcpkg/

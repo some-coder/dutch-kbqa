@@ -1,10 +1,17 @@
 """Various utility symbols."""
 
-from pathlib import Path, PurePosixPath
+import random
+import numpy as np
+import torch
+import torch.backends.cudnn as cudnn
+from pathlib import PurePosixPath
 from requests.exceptions import ConnectionError
 from huggingface_hub.hf_api import HfApi, ModelInfo
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Tuple, Union, Literal
+
+
+TorchDevice = Union[Literal['cpu'], Literal['cuda']]
 
 
 class NaturalLanguage(Enum):
@@ -46,8 +53,8 @@ def hugging_face_hub_model_exists(author: Optional[str], model: str) -> bool:
                                                  search=model)
     except ConnectionError as connect_error:
         raise RuntimeError('Unable to check on HuggingFace Hub whether ' +
-                            f'model \'{id_or_path}\' exists.\nReason: ' +
-                            f'\"{connect_error}\".')
+                           f'model \'{id_or_path}\' exists.\nReason: ' +
+                           f'\"{connect_error}\".')
     for info in infos:
         if info.modelId == id_or_path:
             # Exact match: The model exists on HuggingFace Hub.
@@ -80,3 +87,29 @@ def string_is_existing_hugging_face_hub_model(string: str) -> bool:
     except ValueError:
         # Obtained a problematic string, such as `'/bert-based-uncased'`.
         return False
+
+
+LEGAL_SEEDS_RANGE: Tuple[int, int] = (1, 2 ** 32 - 1)
+
+
+def set_seeds(seed: int) -> None:
+    """Initialises pseudo-random number generators (PRNGs) across the program's
+    components that rely on them.
+    
+    :param seed: The seed to use.
+    :throws: `AssertionError` if `seed` does not lie within the range of legal
+        seeds.
+    """
+    try:
+        assert(seed in range(*LEGAL_SEEDS_RANGE))
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.use_deterministic_algorithms(mode=True)
+        torch.cuda.manual_seed(seed)
+        cudnn.benchmark = False
+    except AssertionError:
+        print('Your PRNG seed, %d, does not lie within [%d, %d]!' %
+              (seed,
+               LEGAL_SEEDS_RANGE[0],
+               LEGAL_SEEDS_RANGE[1]))

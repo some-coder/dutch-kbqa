@@ -30,11 +30,12 @@ SupportedModelType = Union[Literal['bert'], Literal['roberta']]
 SupportedArchitecture = Union[Literal['bert-random'], Literal['bert-bert']]
 
 
+# Type-checking fails here, as HuggingFace Transformers does not play well with
+# MyPy and others.
 SUPPORTED_MODEL_TRIPLES: Dict[SupportedModelType, ModelTriple] = \
     {'bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
      'roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)}
-SUPPORTED_ARCHITECTURES: Set[SupportedArchitecture] = set(['bert-random',
-                                                           'bert-bert'])
+SUPPORTED_ARCHITECTURES: Set[SupportedArchitecture] = {'bert-random', 'bert-bert'}
 
 
 class TransformerRunner:
@@ -76,10 +77,10 @@ class TransformerRunner:
         :param model_architecture: The transformer architecture.
         :param encoder_id_or_path: A file system path to a pre-trained encoder
             language model (enclosing folder or configuration JSON file), or a
-            model ID of a model hosten on `huggingface.co`.
+            model ID of a model hosted on `huggingface.co`.
         :param decoder_id_or_path: A file system path to a pre-trained decoder
             language model (enclosing folder or configuration JSON file), or a
-            model ID of a model hosten on `huggingface.co`.
+            model ID of a model hosted on `huggingface.co`.
         :param dataset_dir: A file system path to a directory. The directory
             under which the training, validation and testing data resides.
         :param natural_language: A natural language. The input language of the
@@ -96,14 +97,15 @@ class TransformerRunner:
             transformer's output layer (for queries). Must be strictly
             positive.
         :param perform_training: Whether to perform the training phase.
-        :param perform_validation: Whether to perfrom the validation phase.
+        :param perform_validation: Whether to perform the validation phase.
         :param perform_testing: Whether to perform the testing phase.
         :param save_dir: A file system path to a directory. The directory under
             which to save transformer checkpoints and model predictions.
         :param seed: A pseudo-random number generator (PRNG) initialisation
             value to use. (This argument is required to encourage
             reproducibility in model results. Take care to switch seeds if it
-            is your intention to obtain varying results.) Must be non-negative.
+            is your intention to obtain varying results.) Must be an integer in
+            the range [1, 2^32 - 1], both ends inclusive.
         :param config_name: An en- and decoder language model configuration if
             you don't wish to use the default one associated with `model_type`.
         :param tokeniser_name: An en- and decoder language model tokeniser if
