@@ -4,7 +4,7 @@ import torch
 from transformers.configuration_utils import PretrainedConfig
 from transformers.modeling_utils import PreTrainedModel
 from dutch_kbqa_py_model.utilities import TorchDevice
-from dutch_kbqa_py_model.beam_search import TokenBeamSearcher
+from dutch_kbqa_py_model.model.beam_search import TokenBeamSearcher
 from typing import Optional, NamedTuple, Union, Tuple, List, Literal
 
 

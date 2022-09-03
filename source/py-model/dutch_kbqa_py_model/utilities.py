@@ -2,6 +2,7 @@
 
 import random
 import numpy as np
+import logging
 import torch
 import torch.backends.cudnn as cudnn
 from pathlib import PurePosixPath
@@ -11,7 +12,22 @@ from enum import Enum
 from typing import Optional, List, Tuple, Union, Literal
 
 
+# Logging-related global constants.
+LOGGER_FMT = '[%(asctime)s, %(levelname)-8s]    %(message)s'
+LOGGER_DATE_FMT = '%Y-%m-%dT%H:%M:%S (%Z)'  # ISO 8601-compliant
+LOGGER_NUMBER_EXAMPLES = 5
+logging.basicConfig(format=LOGGER_FMT,
+                    datefmt=LOGGER_DATE_FMT,
+                    level=logging.INFO)
+LOGGER = logging.getLogger(name='Transformer Runner')
+
+
+# A device that PyTorch may target.
 TorchDevice = Union[Literal['cpu'], Literal['cuda']]
+
+
+# A special 'rank' to use when you wish to not use distributed training.
+NO_DISTRIBUTION_RANK = -1
 
 
 class NaturalLanguage(Enum):
@@ -89,6 +105,7 @@ def string_is_existing_hugging_face_hub_model(string: str) -> bool:
         return False
 
 
+# Permitted values for initialising pseudo-random number generators with.
 LEGAL_SEEDS_RANGE: Tuple[int, int] = (1, 2 ** 32 - 1)
 
 
@@ -113,3 +130,12 @@ def set_seeds(seed: int) -> None:
               (seed,
                LEGAL_SEEDS_RANGE[0],
                LEGAL_SEEDS_RANGE[1]))
+
+
+class MLStage(Enum):
+    """A stage in developing a machine learning model: 'training',
+    'validating', or 'testing'.
+    """
+    TRAIN = 'train'
+    VALIDATE = 'validate'
+    TEST = 'test'

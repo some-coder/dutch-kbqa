@@ -2,10 +2,11 @@
 
 from argparse import ArgumentParser
 from pathlib import Path, PurePosixPath
-from dutch_kbqa_py_model.run import SUPPORTED_MODEL_TRIPLES, \
-                                    SUPPORTED_ARCHITECTURES, \
-                                    TransformerRunner
-from dutch_kbqa_py_model.utilities import NaturalLanguage, \
+from dutch_kbqa_py_model.model.run_transformer import SUPPORTED_MODEL_TRIPLES, \
+                                                      SUPPORTED_ARCHITECTURES, \
+                                                      TransformerRunner
+from dutch_kbqa_py_model.utilities import NO_DISTRIBUTION_RANK, \
+                                          NaturalLanguage, \
                                           QueryLanguage, \
                                           hugging_face_hub_model_exists, \
                                           string_is_existing_hugging_face_hub_model
@@ -14,8 +15,6 @@ from typing import List, Union
 
 ARG_PARSE_BOOLEAN_TRUE = ['True', 'true', 'T', 't']
 ARG_PARSE_BOOLEAN_FALSE = ['False', 'false', 'F', 'f']
-
-NO_LOCAL_RANK = -1
 
 
 def boolean_argument_parser_choices() -> List[str]:
@@ -213,12 +212,12 @@ def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
                              'positive.')
     parser.add_argument('--local_rank',
                         type=int,
-                        default=NO_LOCAL_RANK,
+                        default=NO_DISTRIBUTION_RANK,
                         help='A local rank for processes to use during ' +
                              'distributed training. If given explicitly, a ' +
                              'strictly non-negative integer or the special ' +
-                             'value `NO_LOCAL_RANK` if you wish not to use ' +
-                             'distributed execution.')
+                             'value `NO_DISTRIBUTION_RANK` if you wish not ' +
+                             'to use distributed execution.')
     parser.add_argument('--save_frequency',
                         type=int,
                         default=1,
@@ -288,7 +287,7 @@ def dutch_kbqa_model_namespace_to_runner(parser: ArgumentParser) -> \
     assert(ns.weight_decay >= 0.)
     assert(ns.adam_epsilon > 0.)
     assert(ns.training_epochs > 0)
-    assert(ns.local_rank == NO_LOCAL_RANK or ns.local_rank >= 0)
+    assert(ns.local_rank == NO_DISTRIBUTION_RANK or ns.local_rank >= 0)
     assert(ns.save_frequency > 0)
     if train:
         assert(ns.training_batch_size is not None)

@@ -1,5 +1,8 @@
 """Symbols for running BERT-based transformer fine-tuning operations."""
 
+import torch
+import torch.distributed as torch_distrib
+import os
 from pathlib import Path, PurePosixPath
 from transformers import PretrainedConfig, \
                          PreTrainedModel, \
@@ -10,9 +13,20 @@ from transformers import PretrainedConfig, \
                          RobertaConfig, \
                          RobertaModel, \
                          RobertaTokenizer
-from dutch_kbqa_py_model.utilities import NaturalLanguage, \
-                                          QueryLanguage
-from typing import NamedTuple, Dict, Type, Union, Literal, Set, Optional
+from dutch_kbqa_py_model.model.transformer import Transformer
+from dutch_kbqa_py_model.utilities import LOGGER, \
+                                          NO_DISTRIBUTION_RANK, \
+                                          NaturalLanguage, \
+                                          QueryLanguage, \
+                                          set_seeds
+from typing import NamedTuple, \
+                   Dict, \
+                   Type, \
+                   Union, \
+                   Literal, \
+                   Set, \
+                   Optional, \
+                   Tuple
 
 
 class ModelTriple(NamedTuple):
@@ -30,8 +44,6 @@ SupportedModelType = Union[Literal['bert'], Literal['roberta']]
 SupportedArchitecture = Union[Literal['bert-random'], Literal['bert-bert']]
 
 
-# Type-checking fails here, as HuggingFace Transformers does not play well with
-# MyPy and others.
 SUPPORTED_MODEL_TRIPLES: Dict[SupportedModelType, ModelTriple] = \
     {'bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
      'roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)}
@@ -132,7 +144,7 @@ class TransformerRunner:
             positive.
         :param local_rank: A local rank for processes to use during distributed
             training. If given explicitly, a strictly non-negative integer or
-            the special value `NO_LOCAL_RANK` if you wish not to use
+            the special value `NO_DISTRIBUTION_RANK` if you wish not to use
             distributed execution.
         :param save_frequency: The number of epochs to complete before
             performing a(nother) save to disk. Must be strictly positive.
@@ -169,3 +181,123 @@ class TransformerRunner:
         self.local_rank = local_rank
         self.save_frequency = save_frequency
         self.load_file = load_file
+
+        self.log_arguments()
+
+        device, number_gpus = self.device_and_number_of_gpus_to_use()
+        self.device: torch.device = device
+        self.number_gpus: int = number_gpus
+        self.log_device_and_number_of_gpus_in_use()
+
+        set_seeds(seed=self.seed)
+        self.ensure_save_dir_exists()
+
+    def log_arguments(self) -> None:
+        """Logs this transformer runner's initialisation arguments."""
+        msg = 'Arguments passed to transformer runner:\n'
+        sub_msg_fmt = '\t%27s: %s'
+        members_dict = self.__dict__.items()
+        counter = 0
+        for member, value in members_dict:
+            str_value = f'\'{value}\'' if type(value) == str else f'{value}'
+            sub_msg = sub_msg_fmt % (member, str_value)
+            msg += '%s%s' % (sub_msg,
+                             '\n' if counter < len(members_dict) - 1 else '')
+            counter += 1
+        LOGGER.info(msg)
+
+    def device_and_number_of_gpus_to_use(self) -> Tuple[torch.device, int]:
+        """Returns the PyTorch device to use, as well as the number of GPUs in
+        use, depending on the initialisation arguments.
+
+        :returns: A pair. First, the PyTorch device to use for this Python
+            process. Second, the number of GPUs in use by this Python process:
+            zero or more if not distributed, and zero or one if distributed.
+        """
+        device: torch.device
+        number_gpus: int
+        if self.local_rank != NO_DISTRIBUTION_RANK and self.use_cuda:
+            # Use distributed training. Entails the use of GPUs.
+            torch.cuda.set_device(self.local_rank)
+            device = torch.device('cuda', index=self.local_rank)
+            torch_distrib.init_process_group(backend=torch_distrib.Backend.NCCL)
+            number_gpus = 1
+        else:
+            # Use local training. Uses the GPU depending on `self.use_cuda`.
+            device = torch.device('cuda') \
+                     if torch.cuda_is_available() and self.use_cuda else \
+                     torch.device('cpu')
+            number_gpus = torch.cuda.device_count()
+        return device, number_gpus
+
+    def log_device_and_number_of_gpus_in_use(self) -> None:
+        """Logs this transformer runner Python process' PyTorch device and
+        number of GPUs used.
+        """
+        msg = 'Distributed training? %s. ' + \
+              'Process rank: %d. ' + \
+              'PyTorch device: %s. ' + \
+              'Number of GPUs used by this process: %d. ' +
+        LOGGER.info(msg % (self.local_rank != NO_DISTRIBUTION_RANK,
+                           self.local_rank,
+                           self.device,
+                           self.number_gpus))
+
+    def ensure_save_dir_exists(self) -> None:
+        """Makes sure that `self.save_dir` exists: if it does not yet exist, it
+        will be created.
+        
+        :throws: `OSError` if a file system-related problem occurs.
+        """
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
+
+    def instantiated_config(self) -> PretrainedConfig:
+        cfg_cls, _, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
+        return cfg_cls.from_pretrained(
+            self.encoder_id_or_path
+                if self.config_name is None else
+                self.config_name)
+    
+    def instantiated_tokeniser(self) -> PreTrainedTokenizer:
+        _, _, tok_cls = SUPPORTED_ARCHITECTURES[self.model_type]
+        return tok_cls.from_pretrained(
+            self.encoder_id_or_path
+                if self.tokeniser_name is None else
+                self.tokeniser_name,
+            do_lower_case=self.treat_transformer_as_uncased)
+
+    def instantiated_bert_to_random_transformer(self,
+                                                config: PretrainedConfig,
+                                                encoder: PreTrainedModel,
+                                                tokeniser: PreTrainedTokenizer) -> \
+            Transformer:
+        pass
+    
+    def instantiated_bert_to_bert_transformer(self,
+                                              config: PretrainedConfig,
+                                              encoder: PreTrainedModel,
+                                              tokeniser: PreTrainedTokenizer) -> \
+            Transformer:
+        pass
+
+    def instantiated_transformer(self,
+                                 config: PretrainedConfig) -> Transformer:
+        pass
+
+    def initialised_transformer_and_tokeniser(self) -> \
+            Tuple[Transformer, PreTrainedTokenizer]:
+        """Initialises the requested transformer model and tokeniser.
+        
+        :returns: A pair. First, the initialised transformer model. Second,
+            the tokeniser.
+        """
+        
+        if self.model_architecture == 'bert-random':
+            pass
+        elif self.model_architecture == 'bert-bert':
+            pass
+        else:
+            raise ValueError('Model architecture \'%s\' isn\'t valid!' %
+                             (self.model_architecture,))
+
