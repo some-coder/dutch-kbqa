@@ -28,6 +28,7 @@ wheels/
 *.egg-info/
 *.egg
 *.mypy_cache
+.conda-env
 
 # C++
 vcpkg/
