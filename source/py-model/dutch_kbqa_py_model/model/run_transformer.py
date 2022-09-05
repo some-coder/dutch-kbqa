@@ -897,8 +897,8 @@ class TransformerRunner:
             sub_msg_fmt = '\t%5s: %8.4lf'
             sub_messages: List[Tuple[str, float]] = \
                 [('Old', old),
-                ('New', new),
-                ('Delta', new - old)]
+                 ('New', new),
+                 ('Delta', new - old)]
             for index, (label, value) in enumerate(sub_messages):
                 msg += sub_msg_fmt % (label, value)
                 msg += ',\n' if index != len(sub_messages) - 1 else '.'
@@ -917,8 +917,8 @@ class TransformerRunner:
         if not os.path.exists(best_ckpt_dir):
             os.makedirs(best_ckpt_dir)
         trf_to_save: torch.nn.Module = self.trf.module \
-                                        if hasattr(self.trf, 'module') else \
-                                        self.trf
+                                       if hasattr(self.trf, 'module') else \
+                                       self.trf
         torch.save(trf_to_save.state_dict(),
                    best_ckpt_dir / f'{TransformerRunner.SAVE_FILE_NAME}.zip')
 
