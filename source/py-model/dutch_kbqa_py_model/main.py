@@ -121,19 +121,19 @@ def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
                         required=True)
     parser.add_argument('--perform_training',
                         type=str,
-                        help='Whether to perform the training phase.',
+                        help='Whether to perform the training stage.',
                         choices=ARG_PARSE_BOOLEAN_TRUE +
                                 ARG_PARSE_BOOLEAN_FALSE,
                         required=True)
     parser.add_argument('--perform_validation',
                         type=str,
-                        help='Whether to perform the validation phase.',
+                        help='Whether to perform the validation stage.',
                         choices=ARG_PARSE_BOOLEAN_TRUE +
                                 ARG_PARSE_BOOLEAN_FALSE,
                         required=True)
     parser.add_argument('--perform_testing',
                         type=str,
-                        help='Whether to perform the testing phase.',
+                        help='Whether to perform the testing stage.',
                         choices=ARG_PARSE_BOOLEAN_TRUE +
                                 ARG_PARSE_BOOLEAN_FALSE,
                         required=True)
@@ -286,10 +286,11 @@ def dutch_kbqa_model_namespace_to_runner(parser: ArgumentParser) -> \
     assert(ns.gradient_accumulation_steps > 0)
     assert(ns.weight_decay >= 0.)
     assert(ns.adam_epsilon > 0.)
-    assert(ns.training_epochs > 0)
     assert(ns.local_rank == NO_DISTRIBUTION_RANK or ns.local_rank >= 0)
     assert(ns.save_frequency > 0)
     if train:
+        assert(ns.training_epochs is not None)
+        assert(ns.training_epochs > 0)
         assert(ns.training_batch_size is not None)
         assert(ns.training_batch_size > 0)
     if not train:

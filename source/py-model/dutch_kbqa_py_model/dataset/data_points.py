@@ -96,8 +96,8 @@ def transformer_data_point_from_raw(raw_data_point: RawDataPoint,
     """
     if half == 'output':
         assert(ml_stage is not None)
-    if half == 'output' and ml_stage == MLStage.TEST:
-            tokens = tokeniser.tokenize(text='None')
+    if half == 'output' and ml_stage in (MLStage.VALIDATE, MLStage.TEST):
+        tokens = tokeniser.tokenize(text='None')
     else:
         text = raw_data_point.natural_language if half == 'input' else \
                raw_data_point.query_language

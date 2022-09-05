@@ -1,4 +1,9 @@
-"""Symbols for training, validating, and testing transformer models."""
+"""Symbols for training, validating, and testing transformer models.
+
+Copyright (c) Microsoft Corporation.
+Licensed by Microsoft under the MIT license.
+Adapted by GitHub user `some-coder` on 2022-09-06.
+"""
 
 import torch
 from transformers.configuration_utils import PretrainedConfig
@@ -83,6 +88,7 @@ class Transformer(torch.nn.Module):
     original architecture of Vaswani et al. (2017).
     """
 
+    # The degree of label smoothing during computation of the loss.
     LABEL_SMOOTHING_SCALAR = .1
 
     def __init__(self,
@@ -190,13 +196,13 @@ class Transformer(torch.nn.Module):
         self.tie_or_clone_weights(self.lm_head,
                                   self.encoder.embeddings.word_embeddings)
 
-    def non_testing_phase_forward(self,
+    def non_testing_stage_forward(self,
                                   inp_ids: Optional[torch.Tensor] = None,
                                   inp_att_mask: Optional[torch.Tensor] = None,
                                   out_ids: Optional[torch.Tensor] = None,
                                   out_att_mask: Optional[torch.Tensor] = None) -> \
             TransformerNonTestingOutput:
-        """Performs a single non-testing phase forward-pass in this
+        """Performs a single non-testing stage forward-pass in this
         transformer.
         
         :param inp_ids: Natural language input sequences, encoded as
@@ -247,11 +253,11 @@ class Transformer(torch.nn.Module):
                                            length_scaled_loss=loss * length,
                                            length=length)
 
-    def testing_phase_forward(self,
+    def testing_stage_forward(self,
                               inp_ids: Optional[torch.Tensor] = None,
                               inp_att_mask: Optional[torch.Tensor] = None) -> \
             TransformerTestingOutput:
-        """Performs a single testing phase forward-pass in this transformer.
+        """Performs a single testing stage forward-pass in this transformer.
         
         :param inp_ids: The natural language input sequences, encoded as
             sequences of numerical tokens ("token IDs").
@@ -347,12 +353,12 @@ class Transformer(torch.nn.Module):
             query language sentences when testing.
         """
         if out_ids is None:
-            # Testing phase: predict.
-            return self.testing_phase_forward(inp_ids,
+            # Testing stage: predict.
+            return self.testing_stage_forward(inp_ids,
                                               inp_att_mask)
         else:
-            # Training or validation phase: predict and compare.
-            return self.non_testing_phase_forward(inp_ids,
+            # Training or validation stage: predict and compare.
+            return self.non_testing_stage_forward(inp_ids,
                                                   inp_att_mask,
                                                   out_ids,
                                                   out_att_mask)
