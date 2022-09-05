@@ -1,4 +1,4 @@
-name: /home/niels/Documents/code/dutch-kbqa/source/py-model/.conda-env
+name: $HOME/$PROJECT_ROOT/source/py-model/.conda-env
 channels:
   - pytorch
   - huggingface
