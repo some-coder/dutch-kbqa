@@ -58,7 +58,7 @@ class LabelSmoothingLoss(torch.nn.Module):
             ground_truth_dist.fill_(self.smoothing / (self.num_cls - 1))
             ground_truth_dist.scatter_(dim=1,
                                        index=target.unsqueeze(dim=1),
-                                       src=self.confidence)
+                                       value=self.confidence)
         summed = torch.sum(-ground_truth_dist * prediction, dim=self.dim)
         return torch.mean(summed)
 

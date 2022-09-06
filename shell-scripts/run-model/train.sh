@@ -7,7 +7,8 @@ conda activate source/py-model/.conda-env || {
 	exit 1;
 }
 
-PYTHONHASHSEED=$SEED  # Should be set statically. See Stack Overflow question ID 25684349.
+export PYTHONHASHSEED=$SEED  # Should be set statically. See Stack Overflow question ID 25684349.
+export CUBLAS_WORKSPACE_CONFIG=$MY_CUBLAS_WORKSPACE_CONFIG
 python3 source/py-model/dutch_kbqa_py_model/main.py \
 	--model_type "$MODEL_TYPE" \
 	--model_architecture "$MODEL_ARCHITECTURE" \

@@ -235,7 +235,7 @@ SAVE_FREQUENCY=10
 
 
 
-#     Pseudo-random number generator (PRNG) initialisation
+#     Reproducibility parameters
 
 
 
@@ -245,4 +245,16 @@ SAVE_FREQUENCY=10
 # results. Take care to switch seeds if it is your intention to obtain varying
 # results.) Must be an integer in the range [1, 2^32 - 1], both ends inclusive.
 SEED=42
+
+# `$MY_CUBLAS_WORKSPACE_CONFIG` stores the configuration of the program's cuBLAS
+# (NVIDIA CUDA Basic Linear Algebra Subprograms) library workspace. Its value
+# needs to be one of ":4096:8" or ":16:8" in order to help guarantee
+# reproducibility. See
+# `https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility`
+# for more information.
+#   Note that the actual environment variable that will need to be set is
+# `CUBLAS_WORKSPACE_CONFIG` and not `MY_CUBLAS_WORKSPACE_CONFIG`; the former
+# environment variable is set during the commands
+# `./shell-scripts/run-model/[train|test].sh`.
+MY_CUBLAS_WORKSPACE_CONFIG=":4096:8"
 

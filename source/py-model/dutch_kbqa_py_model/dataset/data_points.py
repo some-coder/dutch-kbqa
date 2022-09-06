@@ -33,10 +33,12 @@ def loaded_raw_data_points(natural_language_file: Path,
         and `query_language_file` are not equal.
     """
     data_points: List[RawDataPoint] = []
-    with open(natural_language_file, encoding='utf-8') as nl_handle, \
-         open(query_language_file, encoding='utf-8') as qr_handle:
-        en = enumerate(zip(nl_handle, qr_handle, strict=True))
-        for idx, (question, query) in en:
+    with open(natural_language_file, mode='r', encoding='utf-8') as nl_handle, \
+         open(query_language_file, mode='r', encoding='utf-8') as ql_handle:
+        nl_lines = nl_handle.readlines()
+        ql_lines = ql_handle.readlines()
+        assert(len(nl_lines) == len(ql_lines))
+        for idx, (question, query) in enumerate(zip(nl_lines, ql_lines)):
             data_points.append(RawDataPoint(idx=idx,
                                             natural_language=question.strip(),
                                             query_language=query.strip()))
@@ -105,8 +107,10 @@ def transformer_data_point_from_raw(raw_data_point: RawDataPoint,
         tokens = tokens[:(max_length - 2)]  # make room for SOS, EOS tokens
     tokens = [tokeniser.cls_token] + tokens + [tokeniser.sep_token] 
     ids = tokeniser.convert_tokens_to_ids(tokens)
-    assert(type(ids) is not int)  # must be a `List[int]`
-    mask = ([1] * len(ids)) + ([0] * (max_length - len(ids)))
+    pad_length = max_length - len(ids)
+    ids += [tokeniser.pad_token_id] * pad_length
+    mask = ([1] * len(tokens)) + ([0] * pad_length)
+    assert(len(ids) == len(mask))
     return TransformerDataPointHalf(ids=ids, att_mask=mask), tokens
 
 
@@ -134,13 +138,17 @@ def log_first_data_points(data_points: List[TransformerDataPoint],
                   '\t\t%6s %9s: \'%s\'.'
     counter = 0  # for determining whether to print a newline
     for data_point, tokens_pair in zip(data_points[:number], tokens_pairs):
+        str_inp_ids = [str(inp_id) for inp_id in data_point.inp_ids]
+        str_out_ids = [str(out_id) for out_id in data_point.out_ids]
+        str_inp_mask = [str(msk_part) for msk_part in data_point.inp_att_mask]
+        str_out_mask = [str(msk_part) for msk_part in data_point.out_att_mask]
         sub_msg = sub_msg_fmt % (data_point.idx,
                                  'Input', 'tokens', ' '.join(tokens_pair[0]),
-                                 '', 'token IDs', ' '.join(data_point.inp_ids),
-                                 '', 'mask', ' '.join(data_point.inp_att_mask),
+                                 '', 'token IDs', ' '.join(str_inp_ids),
+                                 '', 'mask', ' '.join(str_inp_mask),
                                  'Output', 'tokens', ' '.join(tokens_pair[1]),
-                                 '', 'token IDs', ' '.join(data_point.out_ids),
-                                 '', 'mask', ' '.join(data_point.out_att_mask))
+                                 '', 'token IDs', ' '.join(str_out_ids),
+                                 '', 'mask', ' '.join(str_out_mask))
         msg += '%s%s' % (sub_msg, '\n' if counter < number - 1 else '')
         counter += 1
     LOGGER.info(msg)
@@ -182,6 +190,7 @@ def transformer_data_points_from_raw(raw_data_points: List[RawDataPoint],
                                                 out_ids=out_half.ids,
                                                 out_att_mask=out_half.att_mask))
         tokens_pairs.append((inp_tokens, out_tokens))
+    
     if ml_stage == MLStage.TRAIN:
         log_first_data_points(data_points,
                               tokens_pairs,

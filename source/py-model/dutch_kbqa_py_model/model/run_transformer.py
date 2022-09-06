@@ -99,7 +99,7 @@ class WeightDecayParamGroup(TypedDict):
     weight_decay: float
 
 
-class TrainInfo(NamedTuple):
+class TrainInfo(TypedDict):
     """Stores various data pertraining to training transformers."""
     steps_sum: int  # The number of batches processed up until now.
     loss_sum: float  # The cumulative categorical cross-entropy loss.
@@ -128,8 +128,6 @@ class TransformerRunner:
 
     # The number of decoding layers to use.
     NUM_DECODE_LAYERS = 6
-    # Subdirectory relative to the dataset root. Storage for the data points.
-    DATASET_SUBDIR = Path('finalised')
     # The maximum number of data points to consider during the validation stage.
     MAX_VALIDATION_SAMPLES = int(1e3)
     # A fraction of the number of training stage steps. The portion of these
@@ -521,9 +519,8 @@ class TransformerRunner:
             recursion. (The latter may happen if two symlinks point to one
             another, for instance.)
         """
-        return (self.dataset_dir / \
-                TransformerRunner.DATASET_SUBDIR / \
-                f'{ml_stage}-{language.value}.txt').resolve(strict=True)
+        return (self.dataset_dir /  
+                f'{ml_stage.value}-{language.value}.txt').resolve(strict=True)
 
     def raw_data_points_for_ml_stage(self, ml_stage: MLStage) -> \
             List[RawDataPoint]: 
@@ -708,7 +705,7 @@ class TransformerRunner:
         :returns: Training information on the completed training epoch.
         """
         self.trf.train()
-        result = TrainInfo(steps_sum=0, loss_sum=0.)
+        result: TrainInfo = {'steps_sum': 0, 'loss_sum': 0.}
         progress_bar = tqdm.tqdm(dl, total=len(dl))
         batch: List[torch.Tensor]
         for batch in progress_bar:
@@ -724,16 +721,16 @@ class TransformerRunner:
                 ce_loss = ce_loss.mean()
             if self.gradient_accumulation_steps > 1:
                 ce_loss /= self.gradient_accumulation_steps
-            result.loss_sum += ce_loss.item()
-            running_loss = round((result.loss_sum *
+            result['loss_sum'] += ce_loss.item()
+            running_loss = round((result['loss_sum'] *
                                   self.gradient_accumulation_steps) /
-                                 (result.steps_sum + 1),
+                                 (result['steps_sum'] + 1),
                                  ndigits=4)
             dsc_fmt = 'Epoch %3d, running cross-entropy loss %7.4lf.'
             progress_bar.set_description(dsc_fmt % (epoch, running_loss))
-            result.steps_sum += 1
+            result['steps_sum'] += 1
             ce_loss.backward()
-            if (result.steps_sum + 1) % self.gradient_accumulation_steps == 0:
+            if (result['steps_sum'] + 1) % self.gradient_accumulation_steps == 0:
                 # Update the transformer's parameters.
                 optimiser.step()
                 optimiser.zero_grad()
@@ -795,7 +792,8 @@ class TransformerRunner:
         out: List[EvaluationPair] = []
         prd: str
         gt: RawDataPoint
-        for prd, gt in zip(predicted_sents, ground_truth_raw_dps, strict=True):
+        assert(len(predicted_sents) == len(ground_truth_raw_dps))
+        for prd, gt in zip(predicted_sents, ground_truth_raw_dps):
             prd = prd.strip().replace('< ', '<').replace(' >', '>')
             prd = re.sub(r' ?([!"#$%&\'(’)*+,-./:;=?@\\^_`{|}~]) ?',
                          r'\1',
@@ -965,7 +963,7 @@ class TransformerRunner:
         optimiser = self.optimiser_for_training_stage()
         scheduler = self.scheduler_for_training_stage(optimiser, train_dl=dl)
         self.log_start_of_training(number_data_points=number_train)
-        train_info = TrainInfo(steps_sum=0, loss_sum=0.)
+        train_info: TrainInfo = {'steps_sum': 0, 'loss_sum': 0.}
         best_bleu = TransformerRunner.WORST_BLEU_SCORE
         validation_raw_dps = self.raw_data_points_for_ml_stage(MLStage.VALIDATE)
         for epoch in range(self.training_epochs):
@@ -973,11 +971,11 @@ class TransformerRunner:
                                                         dl,
                                                         optimiser,
                                                         scheduler)
-            train_info.steps_sum += epoch_info.steps_sum
-            train_info.loss_sum += epoch_info.loss_sum
+            train_info['steps_sum'] += epoch_info.steps_sum
+            train_info['loss_sum'] += epoch_info.loss_sum
             if self.perform_validation and (epoch + 1) % self.save_frequency == 0:
-                train_info.steps_sum = 0
-                train_info.loss_sum = 0.  # TODO(Niels): Move outside of `if`?
+                train_info['steps_sum'] = 0
+                train_info['loss_sum'] = 0.  # TODO(Niels): Move outside of `if`?
                 best_bleu = self.run_single_evaluation_epoch(validation_raw_dps,
                                                              MLStage.VALIDATE,
                                                              best_bleu)
