@@ -83,6 +83,8 @@ SupportedModelType = Union[Literal['bert'], Literal['roberta']]
 # A supported encoder-decoder transformer architecture. 'Random' means:
 # initialised randomly, so no pretraining.
 SupportedArchitecture = Union[Literal['bert-random'], Literal['bert-bert']]
+# A decoder language model for use in the second half of a transformer.
+Decoder = Union[torch.nn.TransformerDecoder, PreTrainedModel]
 # A type of PyTorch `TensorDataset` sampler used by the `TransformerRunner`.
 Sampler = Union[RandomSampler, DistributedSampler, SequentialSampler]
 # A learning rate scheduler for transformers.
@@ -361,10 +363,56 @@ class TransformerRunner:
         :returns: The configuration.
         """
         cfg_cls, _, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
-        return cfg_cls.from_pretrained(
-            self.encoder_id_or_path
-                if self.config_name is None else
-                self.config_name)
+        config = cfg_cls.from_pretrained(self.encoder_id_or_path
+                                         if self.config_name is None else
+                                         self.config_name)
+        if self.model_architecture == 'bert-random':
+            assert(hasattr(config, 'hidden_size'))
+            assert(type(config.hidden_size) == int)
+            assert(hasattr(config, 'num_attention_heads'))
+            assert(type(config.num_attention_heads) == int)
+        return config
+    
+    def instantiated_encoder(self,
+                             config: PretrainedConfig) -> PreTrainedModel:
+        """Returns an instantiated encoder language model.
+        
+        :param config: The configuration from which to initialise the model.
+        :returns: The instantiated encoder.
+        """
+        _, mdl_cls, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
+        return mdl_cls.from_pretrained(self.encoder_id_or_path,
+                                       config=config)
+    
+    def instantiated_decoder(self,
+                             config: PretrainedConfig) -> \
+            Decoder:
+        """Returns an instantiated decoder language model.
+        
+        :param config: An encoder-side language model configuration. Will be
+            used to derive a decoder-side language model configuration.
+        :returns: The instantiated decoder. May vary in precise type depending
+            on the specified `model_architecture` during the transformer
+            runner's initialisation.
+        """
+        if self.model_architecture == 'bert-random':
+            decode_layer = torch.nn.TransformerDecoderLayer(d_model=config.hidden_size,
+                                                            nhead=config.num_attention_heads)
+            return torch.nn.TransformerDecoder(decode_layer,
+                                               num_layers=TransformerRunner.NUM_DECODE_LAYERS)
+        elif self.model_architecture == 'bert-bert':
+            _, mdl_cls, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
+            config_name = self.config_name \
+                          if self.config_name is not None else \
+                          self.decoder_id_or_path
+            decoder_config = config.__class__.from_pretrained(config_name)
+            decoder_config.is_decoder = True
+            decoder_config.add_cross_attention = True
+            return mdl_cls.from_pretrained(self.decoder_id_or_path,
+                                           config=decoder_config)
+        else:
+            raise ValueError('Model architecture \'%s\' isn\'t valid!' %
+                             (self.model_architecture,))
     
     def instantiated_tokeniser(self) -> PreTrainedTokenizer:
         """Returns an instantiated tokeniser.
@@ -377,76 +425,6 @@ class TransformerRunner:
                 if self.tokeniser_name is None else
                 self.tokeniser_name,
             do_lower_case=self.treat_transformer_as_uncased)
-
-    def instantiated_bert_to_random_transformer(self,
-                                                config: PretrainedConfig,
-                                                encoder: PreTrainedModel,
-                                                tokeniser: PreTrainedTokenizer) -> \
-            Transformer:
-        """Returns an instantiated BERT-to-'random' transformer architecture.
-        
-        Here, 'random' means: an en- or decoder model that is instantiated, but
-        is not given any pretrained weights.
-
-        :param config: The configuration from which to initialise the
-            architecture.
-        :param encoder: An encoder language model to use in the transformer's
-            input-side BERT model.
-        :param tokeniser: A tokeniser to determine SOS and EOS tokens with.
-        :returns: The instantiated BERT-to-BERT transformer.
-        """
-        decode_layer = torch.nn.TransformerDecoderLayer(self.encoder_id_or_path,
-                                                        config=config)
-        decoder = torch.nn.TransformerDecoder(decode_layer,
-                                              num_layers=TransformerRunner.NUM_DECODE_LAYERS)
-        return Transformer(encoder=encoder,
-                           decoder=decoder,
-                           config=config,
-                           beam_size=self.beam_size,
-                           max_length=self.max_query_language_length,
-                           sos_id=tokeniser.cls_token_id,
-                           eos_id=tokeniser.sep_token_id)
-    
-    def instantiated_bert_to_bert_transformer(self,
-                                              config: PretrainedConfig,
-                                              encoder: PreTrainedModel,
-                                              tokeniser: PreTrainedTokenizer) -> \
-            Transformer:
-        """Returns an instantiated BERT-to-BERT transformer architecture.
-        
-        :param config: The configuration from which to initialise the
-            architecture.
-        :param encoder: An encoder language model to use in the transformer's
-            input-side BERT model.
-        :param tokeniser: A tokeniser to determine SOS and EOS tokens with.
-        :returns: The instantiated BERT-to-BERT transformer.
-        """
-        config_name = self.config_name \
-                      if self.config_name is not None else \
-                      self.decoder_id_or_path
-        decoder_config = config.__class__.from_pretrained(config_name)
-        decoder_config.is_decoder = True
-        decoder_config.add_cross_attention = True
-        decoder = encoder.__class__.from_pretrained(self.decoder_id_or_path,
-                                                    config=decoder_config)
-        return Transformer(encoder=encoder,
-                           decoder=decoder,
-                           config=config,
-                           beam_size=self.beam_size,
-                           max_length=self.max_query_language_length,
-                           sos_id=tokeniser.cls_token_id,
-                           eos_id=tokeniser.sep_token_id)
-
-    def instantiated_encoder(self,
-                             config: PretrainedConfig) -> PreTrainedModel:
-        """Returns an instantiated encoder language model.
-        
-        :param config: The configuration from which to initialise the model.
-        :returns: The instantiated model.
-        """
-        _, mdl_cls, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
-        return mdl_cls.from_pretrained(self.encoder_id_or_path,
-                                       config=config)
 
     def initialised_transformer_and_tokeniser(self) -> \
             Tuple[Transformer, PreTrainedTokenizer]:
@@ -462,25 +440,34 @@ class TransformerRunner:
             the tokeniser.
         """
         config = self.instantiated_config()
+        enc_msg = 'Initialising encoder model. ' + \
+                  'Note that there may be warnings of `cls.predictions` ' + \
+                  'weights not being set; this is normal.'
+        dec_msg = 'Initialising decoder model. ' + \
+                  'Note that there may be warnings of (1) `cls.predictions` ' + \
+                  'and (2) `crossattention` weights not being set; this ' + \
+                  'is normal.'
+        LOGGER.info(enc_msg)
         encoder = self.instantiated_encoder(config)
+        LOGGER.info('Successfully initialised encoder.')
+        LOGGER.info(dec_msg)
+        decoder = self.instantiated_decoder(config)
+        LOGGER.info('Successfully initialised decoder.')
         tokeniser = self.instantiated_tokeniser()
-        trf: Transformer
-        if self.model_architecture == 'bert-random':
-            trf = self.instantiated_bert_to_random_transformer(config,
-                                                               encoder,
-                                                               tokeniser)
-        elif self.model_architecture == 'bert-bert':
-            trf = self.instantiated_bert_to_bert_transformer(config,
-                                                             encoder,
-                                                             tokeniser)
+        trf = Transformer(encoder,
+                          decoder,
+                          config,
+                          self.beam_size,
+                          max_length=self.max_query_language_length,
+                          sos_id=tokeniser.cls_token_id,
+                          eos_id=tokeniser.sep_token_id)
+        if self.load_file is None:
+            LOGGER.info('No transformer file to load: starting fine-tuning.')
         else:
-            raise ValueError('Model architecture \'%s\' isn\'t valid!' %
-                             (self.model_architecture,))
-        if self.load_file is not None:
-            msg_before = '\n\tReloading transformer from location \'%s\'.'
+            msg_before = 'Reloading transformer from location \'%s\'.'
             LOGGER.info(msg_before % (str(self.load_file),))
             trf.load_state_dict(torch.load(self.load_file))
-            LOGGER.info('\n\tTransformer reloading successful.')
+            LOGGER.info('Transformer reloading successful.')
         trf.to(self.device)
         return trf, tokeniser
 

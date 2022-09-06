@@ -338,4 +338,5 @@ def dutch_kbqa_model_namespace_to_runner(parser: ArgumentParser) -> \
 if __name__ == '__main__':
     parser = dutch_kbqa_python_model_argument_parser()
     runner = dutch_kbqa_model_namespace_to_runner(parser)
-    print(f'Variables: {vars(runner)}')
+    print('Done.')
+    # runner.run()
