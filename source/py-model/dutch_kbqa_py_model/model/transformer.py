@@ -8,7 +8,9 @@ Adapted by GitHub user `some-coder` on 2022-09-06.
 import torch
 from transformers.configuration_utils import PretrainedConfig
 from transformers.modeling_utils import PreTrainedModel
-from dutch_kbqa_py_model.utilities import TorchDevice
+from transformers.utils.generic import ModelOutput
+from dutch_kbqa_py_model.utilities import LOGGER, \
+                                          TorchDevice
 from dutch_kbqa_py_model.model.beam_search import TokenBeamSearcher
 from typing import Optional, NamedTuple, Union, Tuple, List, Literal
 
@@ -129,17 +131,18 @@ class Transformer(torch.nn.Module):
         # defined on them. Without an intersection construct, this notion can't
         # currently be cleanly conferred in Python. Thus, we resort to runtime
         # `hasattr` checks.
-        assert(hasattr(config, 'hidden_size') and
-               type(config.hidden_size) == int)
-        assert(hasattr(config, 'vocab_size') and
-               type(config.vocab_size) == int) 
-        assert(hasattr(encoder, 'embeddings') and
-               type(encoder) == torch.nn.Module)
-        assert(hasattr(encoder.embeddings, 'word_embeddings') and
-               type(encoder.embeddings) == torch.nn.Embedding)
+        assert(hasattr(config, 'hidden_size'))
+        assert(type(config.hidden_size) == int)
+        assert(hasattr(config, 'vocab_size'))
+        assert(type(config.vocab_size) == int)
+        assert(hasattr(encoder, 'embeddings'))
+        assert(isinstance(encoder, torch.nn.Module))
+        assert(hasattr(encoder.embeddings, 'word_embeddings'))
+        assert(isinstance(encoder.embeddings.word_embeddings,
+                          torch.nn.Embedding))
         
         # Further business-logic checks.
-        assert(not config.return_dict)
+        assert(config.return_dict is True)
         
         self.encoder = encoder
         self.decoder = decoder
@@ -219,24 +222,24 @@ class Transformer(torch.nn.Module):
             all batch query sentences, and (3) the cumulative length of all
             batch query sentences.
         """
-        outputs: Tuple[torch.Tensor, ...] = \
+        outputs: ModelOutput = \
             self.encoder(input_ids=inp_ids,
                          attention_mask=inp_att_mask)
         if self.decode_type == 'pytorch':
             encoder_output = outputs[0].permute(1, 0, 2).contiguous()
             att_mask = -1.e4 * (1. - self.bias[:out_ids.shape[1], :out_ids.shape[1]])
             out_embeddings = self.encoder.embeddings(input_ids=out_ids).permute(1, 0, 2).contiguous()
-            out = self.decoder(tgt=out_embeddings,
-                               memory=encoder_output,
-                               tgt_mask=att_mask,
-                               memory_key_padding_mask=(1. - inp_att_mask).bool())
+            out: torch.Tensor = self.decoder(tgt=out_embeddings,
+                                             memory=encoder_output,
+                                             tgt_mask=att_mask,
+                                             memory_key_padding_mask=(1. - inp_att_mask).bool())
             hidden_states = torch.tanh(self.dense(out)).permute(1, 0, 2).contiguous()
         else:
             encoder_output = outputs[0]
-            out = self.decoder(input_ids=out_ids,
-                               attention_mask=out_att_mask,
-                               encoder_hidden_states=encoder_output,
-                               encoder_attention_mask=inp_att_mask)
+            out: ModelOutput = self.decoder(input_ids=out_ids,
+                                            attention_mask=out_att_mask,
+                                            encoder_hidden_states=encoder_output,
+                                            encoder_attention_mask=inp_att_mask)
             hidden_states = torch.tanh(self.dense(out[0]))
         lm_log_its = self.lm_head(hidden_states)
 
@@ -265,7 +268,7 @@ class Transformer(torch.nn.Module):
             language input sequences.
         :returns: Predicted query language sentences.
         """
-        outputs: Tuple[torch.Tensor, ...] = \
+        outputs: ModelOutput = \
             self.encoder(input_ids=inp_ids,
                          attention_mask=inp_att_mask)
         encoder_output = outputs[0].permute(1, 0, 2).contiguous()
@@ -290,19 +293,19 @@ class Transformer(torch.nn.Module):
                     break
                 if self.decode_type == 'pytorch':
                     att_mask = -1.e4 * (1. - self.bias[:input_ids.shape[1],
-                                                    :input_ids.shape[1]])
+                                                       :input_ids.shape[1]])
                     out_embeddings = self.encoder.embeddings(input_ids).permute(1, 0, 2).contiguous()
-                    out = self.decoder(tgt=out_embeddings,
-                                       memory=context,
-                                       tgt_mask=att_mask,
-                                       memory_key_padding_mask=(1. - context_mask).bool())
+                    out: torch.Tensor = self.decoder(tgt=out_embeddings,
+                                                     memory=context,
+                                                     tgt_mask=att_mask,
+                                                     memory_key_padding_mask=(1. - context_mask).bool())
                     hidden_states = out.permute(1, 0, 2).contiguous()[:, -1, :]
                 else:
                     att_mask = inp_ids > 0
-                    out = self.decoder(input_ids=input_ids,
-                                       attention_mask=att_mask,
-                                       encoder_hidden_states=context,
-                                       encoder_attention_mask=context_mask)
+                    out: ModelOutput = self.decoder(input_ids=input_ids,
+                                                    attention_mask=att_mask,
+                                                    encoder_hidden_states=context,
+                                                    encoder_attention_mask=context_mask)
                     hidden_states = torch.tanh(self.dense(out[0]))[:, -1, :]
                 out = self.lsm(self.lm_head(hidden_states))
                 beam.advance(suc_probs=out)

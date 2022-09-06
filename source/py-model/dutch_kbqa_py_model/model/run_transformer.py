@@ -292,15 +292,15 @@ class TransformerRunner:
     def log_arguments(self) -> None:
         """Logs this transformer runner's initialisation arguments."""
         msg = 'Arguments passed to transformer runner:\n'
-        sub_msg_fmt = '\t%27s: %s'
+        sub_msg_fmt = '\t%28s: %s'
         members_dict = self.__dict__.items()
-        counter = 0
-        for member, value in members_dict:
-            str_value = f'\'{value}\'' if type(value) == str else f'{value}'
-            sub_msg = sub_msg_fmt % (member, str_value)
-            msg += '%s%s' % (sub_msg,
-                             '\n' if counter < len(members_dict) - 1 else '')
-            counter += 1
+        for idx, (member, value) in enumerate(members_dict):
+            if member == 'local_rank' and value == NO_DISTRIBUTION_RANK:
+                str_val = '(No rank)'
+            else:
+                str_val = f'\'{value}\'' if type(value) == str else f'{value}'
+            msg += sub_msg_fmt % (member, str_val)
+            msg += ',\n' if idx < len(members_dict) - 1 else '.'
         LOGGER.info(msg)
 
     def device_and_number_of_gpus_to_use(self) -> Tuple[torch.device, int]:
@@ -339,7 +339,10 @@ class TransformerRunner:
              ('PyTorch device', self.device),
              ('Number of GPUs used by this process', self.number_gpus)]
         for index, (label, value) in enumerate(sub_messages):
-            msg += sub_msg_fmt % (label, str(value))
+            if label == 'Process rank' and value == NO_DISTRIBUTION_RANK:
+                msg += sub_msg_fmt % (label, '(No rank)')
+            else:
+                msg += sub_msg_fmt % (label, str(value))
             msg += ',\n' if index != len(sub_messages) - 1 else '.'
         LOGGER.info(msg)
 
@@ -420,11 +423,11 @@ class TransformerRunner:
         """
         config_name = self.config_name \
                       if self.config_name is not None else \
-                      self.encoder_id_or_path
+                      self.decoder_id_or_path
         decoder_config = config.__class__.from_pretrained(config_name)
         decoder_config.is_decoder = True
         decoder_config.add_cross_attention = True
-        decoder = encoder.__class__.from_pretrained(self.encoder_id_or_path,
+        decoder = encoder.__class__.from_pretrained(self.decoder_id_or_path,
                                                     config=decoder_config)
         return Transformer(encoder=encoder,
                            decoder=decoder,

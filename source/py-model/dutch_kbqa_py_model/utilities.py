@@ -13,7 +13,7 @@ from typing import Optional, List, Tuple, Union, Literal
 
 
 # Logging-related global constants.
-LOGGER_FMT = '[%(asctime)s, %(levelname)-8s]    %(message)s'
+LOGGER_FMT = '[%(asctime)s, %(levelname)8s]    %(message)s'
 LOGGER_DATE_FMT = '%Y-%m-%dT%H:%M:%S (%Z)'  # ISO 8601-compliant
 LOGGER_NUMBER_EXAMPLES = 5
 logging.basicConfig(format=LOGGER_FMT,
