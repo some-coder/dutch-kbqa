@@ -1,4 +1,4 @@
-name: $HOME/$PROJECT_ROOT/source/py-model/.conda-env
+name: $PROJECT_ROOT/source/py-model/.conda-env
 channels:
   - pytorch
   - huggingface
@@ -87,4 +87,4 @@ dependencies:
   - zipp=3.8.0
   - zlib=1.2.12
   - zstd=1.5.2
-prefix: $HOME/$PROJECT_ROOT/source/py-model/.conda-env
+prefix: $PROJECT_ROOT/source/py-model/.conda-env

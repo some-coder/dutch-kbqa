@@ -1,20 +1,10 @@
 # Train, Validate, and Test the Transformer Model
 
-Given a prepared dataset (see `documentation/create-dutch-dataset.md`), we are in the position to train, validate, and test a BERT-based transformer model. We will first discuss how to fine-tune a pre-trained transformer on our downstream Dutch-to-SPARQL task ('training' and 'validating'). Thereafter, we show how to test the trained-and-validated model.
+Given (1) a prepared dataset (see `documentation/create-dutch-dataset.md`) and (2) a completely initialised Conda environment (see `documentation/install-model-dependencies.md`), we are in the position to train, validate, and test a BERT-based transformer model. We will first discuss how to fine-tune a pre-trained transformer on our downstream Dutch-to-SPARQL task ('training' and 'validating'). Thereafter, we show how to test the trained-and-validated model.
 
 ## Train and validate the transformer
 
-Before training and validating the transformer, we must, once again, prepare our Python environment. Do this by executing the following commands:
-
-```sh
-cd source/py-model/
-python3 -m venv .venv
-source .venv/bin/activate
-pip3 install -r requirements.txt
-pip3 install -e .
-```
-
-Once done, go back to the project's root directory. Train and validate the model by calling
+In the project's root directory, train and validate the model by calling
 
 ```sh
 (set -a .env && source .env && ./shell-scripts/run-model/train.sh)

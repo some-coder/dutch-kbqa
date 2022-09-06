@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
 
-source source/py-model/.venv/bin/activate
+source "$(conda info --base)/etc/profile.d/conda.sh"
+
+conda activate source/py-model/.conda-env || {
+	echo '`conda activate` failed. Is Conda initialised in this shell?';
+	exit 1;
+}
 
 PYTHONHASHSEED=$SEED  # Should be set statically. See Stack Overflow question ID 25684349.
 python3 source/py-model/dutch_kbqa_py_model/main.py \
@@ -29,5 +34,5 @@ python3 source/py-model/dutch_kbqa_py_model/main.py \
 # Note that you can add more arguments if you wish to change the script; see
 # the `.sample-env` for options.
 
-deactivate
+conda deactivate
 

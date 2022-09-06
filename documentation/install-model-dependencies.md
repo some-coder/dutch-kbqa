@@ -44,7 +44,7 @@ conda create --prefix .conda-env
 
 This will create an empty Conda environment at `source/py-model/.conda-env`, relative to the project's root directory.
 
-One step remains: activate your just-created Conda environment by executing
+Next, activate your just-created Conda environment by executing
 
 ```sh
 conda activate $PWD/.conda-env
@@ -53,6 +53,12 @@ conda activate $PWD/.conda-env
 **Tip 1.** It's a good idea to deactivate your Conda environment as soon as you start to work on another project. Call `conda deactivate` to quit the environment.
 
 **Tip 2** To activate your Conda environment regardless of your position in the file system, fully qualify the location of `.conda-env`: `conda activate $PROJECT_ROOT/source/py-model/.conda-env/`, where `$PROJECT_ROOT` is the file system location of the project's root directory.
+
+Once the Conda environment is activated, install pre-defined dependencies listed in `source/py-model/environment.yaml`:
+
+```sh
+conda env update --prefix $PWD/.conda-env --file environment.yaml --prune
+```
 
 ## Step 4: Build PyTorch from source
 
