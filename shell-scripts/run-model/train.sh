@@ -2,7 +2,6 @@
 
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
-
 conda activate source/py-model/.conda-env || {
 	echo '`conda activate` failed. Is Conda initialised in this shell?';
 	exit 1;
