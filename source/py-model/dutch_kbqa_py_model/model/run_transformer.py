@@ -57,14 +57,13 @@ from typing import NamedTuple, \
                    Dict, \
                    Type, \
                    Union, \
-                   Literal, \
                    Set, \
                    Optional, \
                    Tuple, \
                    List, \
-                   TypedDict, \
                    Callable, \
                    cast
+from typing_extensions import Literal, TypedDict
 
 
 class ModelTriple(NamedTuple):
@@ -646,7 +645,8 @@ class TransformerRunner:
         :returns: An optimiser.
         """
         is_decayable_param: Callable[[str], bool] = \
-            lambda param_name: param_name in ['bias', 'LayerNorm.weight']
+            lambda param_name: not any((kw in param_name) for kw in
+                                       ['bias', 'LayerNorm.weight'])
         param_groups: List[WeightDecayParamGroup] = \
             [{'params': [param for name, param in self.trf.named_parameters()
                          if is_decayable_param(name)],
@@ -734,7 +734,7 @@ class TransformerRunner:
                 # Update the transformer's parameters.
                 optimiser.step()
                 optimiser.zero_grad()
-                scheduler.step()
+                scheduler.step() 
         return result
     
     def predicted_query_language_sentences(self,
@@ -868,7 +868,7 @@ class TransformerRunner:
         assert(ml_stage in (MLStage.VALIDATE, MLStage.TEST))
         msg = 'Machine learning stage \'%s\' BLEU score: %8.4lf.'
         LOGGER.info(msg % (ml_stage.value.title(),
-                           str(round(bleu_score, ndigits=4)),))
+                           round(bleu_score, ndigits=4),))
 
     def log_validation_bleu_score_update(self, old: float, new: float) -> None:
         """Logs how the validation BLEU score of the transformer updated from
@@ -971,8 +971,8 @@ class TransformerRunner:
                                                         dl,
                                                         optimiser,
                                                         scheduler)
-            train_info['steps_sum'] += epoch_info.steps_sum
-            train_info['loss_sum'] += epoch_info.loss_sum
+            train_info['steps_sum'] += epoch_info['steps_sum']
+            train_info['loss_sum'] += epoch_info['loss_sum']
             if self.perform_validation and (epoch + 1) % self.save_frequency == 0:
                 train_info['steps_sum'] = 0
                 train_info['loss_sum'] = 0.  # TODO(Niels): Move outside of `if`?

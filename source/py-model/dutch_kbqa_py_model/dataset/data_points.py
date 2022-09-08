@@ -2,10 +2,17 @@
 
 from pathlib import Path
 from transformers import PreTrainedTokenizer
-from dutch_kbqa_py_model.utilities import LOGGER, \
+from dutch_kbqa_py_model.utilities import DEBUG_MODE, \
+                                          LOGGER, \
                                           LOGGER_NUMBER_EXAMPLES, \
-                                          MLStage
-from typing import NamedTuple, List, Tuple, Optional, Union, Literal
+                                          MLStage, \
+from typing import NamedTuple, List, Tuple, Optional, Union
+from typing_extensions import Literal
+
+
+# When `DEBUG_MODE` is turned on (set to `True`), datasets get limited to the
+# the first `DEBUG_NUMBER_DATA_POINTS`.
+DEBUG_NUMBER_DATA_POINTS = 16
 
 
 class RawDataPoint(NamedTuple):
@@ -35,8 +42,12 @@ def loaded_raw_data_points(natural_language_file: Path,
     data_points: List[RawDataPoint] = []
     with open(natural_language_file, mode='r', encoding='utf-8') as nl_handle, \
          open(query_language_file, mode='r', encoding='utf-8') as ql_handle:
-        nl_lines = nl_handle.readlines()
-        ql_lines = ql_handle.readlines()
+        if DEBUG_MODE:
+            nl_lines = nl_handle.readlines()[:DEBUG_NUMBER_DATA_POINTS]
+            ql_lines = ql_handle.readlines()[:DEBUG_NUMBER_DATA_POINTS]
+        else:
+            nl_lines = nl_handle.readlines()
+            ql_lines = ql_handle.readlines()
         assert(len(nl_lines) == len(ql_lines))
         for idx, (question, query) in enumerate(zip(nl_lines, ql_lines)):
             data_points.append(RawDataPoint(idx=idx,

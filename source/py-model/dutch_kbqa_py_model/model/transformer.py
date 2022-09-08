@@ -8,12 +8,16 @@ Adapted by GitHub user `some-coder` on 2022-09-06.
 import torch
 from transformers.configuration_utils import PretrainedConfig
 from transformers.modeling_utils import PreTrainedModel
-from transformers.utils.generic import ModelOutput
+from transformers.file_utils import ModelOutput
 from dutch_kbqa_py_model.utilities import LOGGER, \
                                           TorchDevice
 from dutch_kbqa_py_model.model.beam_search import TokenBeamSearcher
-from typing import Optional, NamedTuple, Union, Tuple, List, Literal
+from typing import Optional, NamedTuple, Union, Tuple, List
+from typing_extensions import Literal
 
+import time
+import os
+import numpy as np
 
 class LabelSmoothingLoss(torch.nn.Module):
     """A PyTorch module for computing label-smoothed losses on predictions.
@@ -271,7 +275,9 @@ class Transformer(torch.nn.Module):
         outputs: ModelOutput = \
             self.encoder(input_ids=inp_ids,
                          attention_mask=inp_att_mask)
-        encoder_output = outputs[0].permute(1, 0, 2).contiguous()
+        encoder_output = outputs[0].permute(1, 0, 2).contiguous() \
+                         if self.decode_type == 'pytorch' else \
+                         outputs[0]
         predictions: List[torch.Tensor] = []
         zero = torch.zeros(1, device=self.device)
         for idx in range(inp_ids.shape[0]):
@@ -299,9 +305,10 @@ class Transformer(torch.nn.Module):
                                                      memory=context,
                                                      tgt_mask=att_mask,
                                                      memory_key_padding_mask=(1. - context_mask).bool())
+                    out = torch.tanh(self.dense(out))
                     hidden_states = out.permute(1, 0, 2).contiguous()[:, -1, :]
                 else:
-                    att_mask = inp_ids > 0
+                    att_mask = input_ids > 0
                     out: ModelOutput = self.decoder(input_ids=input_ids,
                                                     attention_mask=att_mask,
                                                     encoder_hidden_states=context,
@@ -313,11 +320,11 @@ class Transformer(torch.nn.Module):
                 input_ids = torch.cat(tensors=(input_ids, beam.current_state()),
                                       dim=-1)
             hypotheses = beam.hypotheses(beams=beam.final_token_beams())
-            predictions = beam.target_tokens(hypotheses)[:self.beam_size]
-            predictions = [torch.cat(tensors=[tkn.view(-1) for tkn in p] +
-                                             [zero] * (self.max_length - len(p)))
-                           for p in predictions]
-            predictions.append(torch.cat(predictions, 0).unsqueeze(0))
+            prediction = beam.target_tokens(hypotheses)[:self.beam_size]
+            prediction = [torch.cat(tensors=[tkn.view(-1) for tkn in p] +
+                                            [zero] * (self.max_length - len(p))).view(1, -1)
+                          for p in prediction]
+            predictions.append(torch.cat(prediction, 0).unsqueeze(0))
         predictions: torch.Tensor = torch.cat(predictions, 0)
         return predictions
 

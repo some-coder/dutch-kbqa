@@ -94,6 +94,12 @@ MODELS_DIR="${PWD}/resources/models"
 # saved to disk, it can be found under `${MODELS_DIR}/${MODEL_NAME}`.
 MODEL_NAME="my-dutch-kbqa-model"
 
+# `$PY_MODEL_PACKAGE_MANAGER` stores the Python package manager to use when
+# running `source/py-model`. It must be either `conda` or `pip`.
+#   `$PY_MODEL_PACKAGE_MANAGER` is only relevant to running
+# `source/py-model`; when running `source/py-ds-create`, `pip` is always used.
+PY_MODEL_PACKAGE_MANAGER="pip"
+
 
 # In the following, consider calling
 # 
@@ -257,4 +263,12 @@ SEED=42
 # environment variable is set during the commands
 # `./shell-scripts/run-model/[train|test].sh`.
 MY_CUBLAS_WORKSPACE_CONFIG=":4096:8"
+
+# `$DEBUG_MODE` enables debugging modes wherever available in the programs
+# under `source/`. You will be warned during executions of programs if this
+# mode is turned on.
+#   The debug mode emits extra logging information.
+#   Legal values are "True", "T", "true", "t" (for enabling debug mode), and
+# "False", "F", "false", and "f" (for disabling debug mode).
+DEBUG_MODE="False"
 

@@ -1,11 +1,21 @@
 #!/usr/bin/env bash
 
 
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate source/py-model/.venv/bin/activate || {
-	echo '`conda activate` failed. Is Conda initialised in this shell?';
+if [ "${PY_MODEL_PACKAGE_MANAGER}" = "conda" ]; then
+	source "$(conda info --base)/etc/profile.d/conda.sh"
+	conda activate source/py-model/.conda-env || {
+		echo '`conda activate` failed. Is Conda initialised in this shell?';
+		exit 1;
+	}
+elif [ "${PY_MODEL_PACKAGE_MANAGER}" = "pip" ]; then
+	source source/py-model/.venv/bin/activate || {
+		echo '`pip activate` failed. Is there a `.venv` in `source/py-model/`?';
+		exit 1;
+	}
+else
+	echo "Invalid `source/py-model` package manager: '${PY_MODEL_PACKAGE_MANAGER}'.";
 	exit 1;
-}
+fi
 
 PYTHONHASHSEED=$SEED  # Should be set statically. See Stack Overflow question ID 25684349.
 CUBLAS_WORKSPACE_CONFIG=$MY_CUBLAS_WORKSPACE_CONFIG
@@ -29,5 +39,9 @@ python3 source/py-model/dutch_kbqa_py_model/main.py \
 # Note that you can add more arguments if you wish to change the script; see
 # the `.sample-env` for options.
 
-conda deactivate
+if [ "${PY_MODEL_PACKAGE_MANAGER}" = "conda" ]; then
+	conda deactivate
+elif [ "${PY_MODEL_PACKAGE_MANAGER}" = "pip" ]; then
+	deactivate
+fi
 

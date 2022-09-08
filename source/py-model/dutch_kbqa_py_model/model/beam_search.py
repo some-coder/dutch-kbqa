@@ -176,8 +176,8 @@ class TokenBeamSearcher:
                     not_completed.append(TokenBeam(summed_log_prb=sum_prob,
                                                    length=len(self.sel_tokens_list) - 1,
                                                    beam_idx=idx))
-                not_completed.sort(key=lambda beam: -beam.summed_log_prb)
-                self.cpl_beams += not_completed[:self.beam_size - len(self.cpl_beams)]
+            not_completed.sort(key=lambda beam: -beam.summed_log_prb)
+            self.cpl_beams += not_completed[:self.beam_size - len(self.cpl_beams)]
         return self.cpl_beams[:self.beam_size]
 
     def hypotheses(self, beams: List[TokenBeam]) -> List[Sentence]:
