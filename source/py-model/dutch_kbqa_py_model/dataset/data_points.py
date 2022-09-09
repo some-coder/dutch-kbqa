@@ -5,7 +5,7 @@ from transformers import PreTrainedTokenizer
 from dutch_kbqa_py_model.utilities import DEBUG_MODE, \
                                           LOGGER, \
                                           LOGGER_NUMBER_EXAMPLES, \
-                                          MLStage, \
+                                          MLStage
 from typing import NamedTuple, List, Tuple, Optional, Union
 from typing_extensions import Literal
 

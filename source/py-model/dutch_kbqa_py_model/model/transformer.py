@@ -15,9 +15,6 @@ from dutch_kbqa_py_model.model.beam_search import TokenBeamSearcher
 from typing import Optional, NamedTuple, Union, Tuple, List
 from typing_extensions import Literal
 
-import time
-import os
-import numpy as np
 
 class LabelSmoothingLoss(torch.nn.Module):
     """A PyTorch module for computing label-smoothed losses on predictions.
@@ -260,6 +257,19 @@ class Transformer(torch.nn.Module):
                                            length_scaled_loss=loss * length,
                                            length=length)
 
+    def zero_device(self) -> TorchDevice:
+        """Returns the PyTorch device on which zero-valued scalar tensors
+        should be placed.
+
+        :returns: The PyTorch device.
+        """
+        if self.device is None:
+            return torch.device('cuda'
+                                if torch.cuda.is_available() else
+                                'cpu')
+        else:
+            return self.device
+    
     def testing_stage_forward(self,
                               inp_ids: Optional[torch.Tensor] = None,
                               inp_att_mask: Optional[torch.Tensor] = None) -> \
@@ -279,7 +289,7 @@ class Transformer(torch.nn.Module):
                          if self.decode_type == 'pytorch' else \
                          outputs[0]
         predictions: List[torch.Tensor] = []
-        zero = torch.zeros(1, device=self.device)
+        zero = torch.zeros(1, device=self.zero_device())
         for idx in range(inp_ids.shape[0]):
             context = encoder_output[:, idx:(idx + 1)] \
                       if self.decode_type == 'pytorch' else \

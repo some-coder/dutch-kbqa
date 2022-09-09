@@ -19,7 +19,7 @@ from typing_extensions import Literal
 try:
     if os.environ['DEBUG_MODE'] in ('True', 'true', 'T', 't'):
         DEBUG_MODE = True
-    elif os.environ['DEBUG_MODE'] in ('True', 'true', 'T', 't')
+    elif os.environ['DEBUG_MODE'] in ('True', 'true', 'T', 't'):
         DEBUG_MODE = False
     else:
         raise ValueError('Environment variable `DEBUG_MODE`, if set, should ' +

@@ -127,8 +127,9 @@ class TransformerRunner:
 
     # The number of decoding layers to use.
     NUM_DECODE_LAYERS = 6
-    # The maximum number of data points to consider during the validation stage.
-    MAX_VALIDATION_SAMPLES = int(1e3)
+    # The maximum number of data points to include when performing a sampling
+    # operation while reading raw data points. Inclusive.
+    MAX_SAMPLES = int(1e3)
     # A fraction of the number of training stage steps. The portion of these
     # steps in which a linear optimizer learning rate warmup is applied.
     WARMUP_STEPS_FRACTION = .1
@@ -521,13 +522,20 @@ class TransformerRunner:
         return (self.dataset_dir /  
                 f'{ml_stage.value}-{language.value}.txt').resolve(strict=True)
 
-    def raw_data_points_for_ml_stage(self, ml_stage: MLStage) -> \
+    def raw_data_points_for_ml_stage(self,
+                                     ml_stage: MLStage,
+                                     perform_sampling: bool = False) -> \
             List[RawDataPoint]: 
         """Returns unprocessed ('raw') data points for the requested stage of
         machine learning.
         
         :param ml_stage: The machine learning stage to get 'raw' data points
             for.
+        :param perform_sampling: Whether to draw a random sample from the
+            complete set of raw data points. Note that the sample's size is
+            capped to a maximum of `MAX_SAMPLES` data points, so if the file
+            you requested has more data points, some may not appear in the
+            sample. Defaults to `False`.
         :returns: 'Raw' data points for the requested ML stage.
         """
         natural_language_loc = self.data_points_location(ml_stage,
@@ -536,8 +544,8 @@ class TransformerRunner:
                                                        self.query_language)
         data_points = loaded_raw_data_points(natural_language_loc,
                                              query_language_loc)
-        if ml_stage == MLStage.VALIDATE:
-            sample_size = min(TransformerRunner.MAX_VALIDATION_SAMPLES,
+        if perform_sampling:
+            sample_size = min(TransformerRunner.MAX_SAMPLES,
                               len(data_points))
             data_points = random.sample(data_points, k=sample_size)
         return data_points
@@ -762,10 +770,9 @@ class TransformerRunner:
             batch = tuple(t.to(self.device) for t in batch)
             inp_ids, inp_att_mask = batch
             with torch.no_grad():
-                # TODO(Niels): Make axis that is iterated over explicit.
                 predictions: torch.Tensor = self.trf(inp_ids, inp_att_mask)
                 for prediction in predictions:
-                    tkn_ids = list(prediction[0].cpu().numpy())
+                    tkn_ids = list(prediction[0, :].cpu().numpy())
                     if 0 in tkn_ids:
                         # Remove any zero-padding tokens to the right.
                         tkn_ids = tkn_ids[:tkn_ids.index(0)]
@@ -912,31 +919,22 @@ class TransformerRunner:
 
     def run_single_evaluation_epoch(self,
                                     raw_dps: List[RawDataPoint],
-                                    ml_stage: MLStage,
-                                    best_bleu: Optional[float] = None) -> \
-            Optional[float]:
+                                    ml_stage: MLStage) -> float:
         """Runs the transformer through a single evaluation epoch.
 
         :param raw_dps: The 'raw' evaluation data points. Should remain
-            constant when calling this method multiple times, that is, during
-            the validation stage.
+            constant when calling this method multiple times (during the
+            validation stage).
         :param ml_stage: The machine learning stage to which this evaluation
             stage belongs. By definition, `ml_stage` may be either
             `MLStage.VALIDATE` or `MLStage.TEST`; other stages are invalid.
-        :param best_bleu: (Only required when `ml_stage` is set to
-            `MLStage.VALIDATE`.) The transformer's best BLEU score before this
-            epoch.
-        :returns: If `ml_stage` is set to `MLStage.VALIDATE`, the best BLEU
-            score obtained by the transformer up until and including this
-            epoch. Is equal to or greater than `best_bleu`. If `ml_stage` is
-            not `MLStage.VALIDATE`, `None`.
+        :returns: The BLEU score obtained by the transformer in its current
+            state, that is: in the current epoch, with its current weights
+            parameterisation.
         :throws: `AssertionError` if `ml_stage` is not either
-            `MLStage.VALIDATE` or `MLStage.TEST`, or if `best_bleu` is not
-            specified while `ml_stage` is set to `MLStage.VALIDATE`.
+            `MLStage.VALIDATE` or `MLStage.TEST`.
         """
         assert(ml_stage in (MLStage.VALIDATE, MLStage.TEST))
-        if ml_stage == MLStage.VALIDATE:
-            assert(best_bleu is not None)
         dl, _ = self.data_loader_for_ml_stage(ml_stage, raw_dps)
         self.trf.eval()
         prd_sents = self.predicted_query_language_sentences(dl, ml_stage)
@@ -946,11 +944,30 @@ class TransformerRunner:
         self.save_evaluation_pairs(e_pairs, ml_stage)
         bleu_score = self.transformer_evaluation_bleu_score(e_pairs)
         self.log_transformer_evaluation_bleu_score(bleu_score, ml_stage)
-        if ml_stage == MLStage.VALIDATE and bleu_score > best_bleu:
-            self.log_validation_bleu_score_update(old=best_bleu, new=bleu_score)
-            best_bleu = bleu_score
-            self.save_transformer()
-        return best_bleu if ml_stage == MLStage.VALIDATE else None
+        return bleu_score
+
+    def ensure_training_stage_begins_with_empty_save_dir(self) -> None:
+        """Ensures that, when starting a training stage, the saving directory
+        `save_dir` does not have any contents. Specifically, it should not
+        contain any evaluation pair text files, nor any transformer
+        checkpoints.
+        
+        This method does not clear the directory for you; this is on purpose.
+        You should decide what to do with the contents of the directory if it
+        is not empty. 
+
+        :throws: `RuntimeError` when `save_dir` has contents.
+        """
+        if os.path.exists(self.save_dir) and \
+           len(os.listdir(self.save_dir)) != 0:
+            LOGGER.critical('You want to train a transformer under ' +
+                            f'\'{self.save_dir}\', but this directory is not ' +
+                            'empty! Either (1) rename or move the directory, ' +
+                            '(2) move the contents of the directory ' +
+                            'somewhere else, or (3) delete the directory.')
+            raise RuntimeError('Encountered a non-empty training stage saving ' +
+                               'directory! See the logger message above for ' +
+                               'instructions on how to resolve this issue.')
 
     def run_training_stage(self) -> None:
         """Runs the transformer through a complete training stage.
@@ -959,13 +976,15 @@ class TransformerRunner:
         with validation epochs (if `perform_validation` was set to `True`);
         `training_epochs` is the number of epochs run.
         """
+        self.ensure_training_stage_begins_with_empty_save_dir()
         dl, number_train = self.data_loader_for_ml_stage(MLStage.TRAIN)
         optimiser = self.optimiser_for_training_stage()
         scheduler = self.scheduler_for_training_stage(optimiser, train_dl=dl)
         self.log_start_of_training(number_data_points=number_train)
         train_info: TrainInfo = {'steps_sum': 0, 'loss_sum': 0.}
         best_bleu = TransformerRunner.WORST_BLEU_SCORE
-        validation_raw_dps = self.raw_data_points_for_ml_stage(MLStage.VALIDATE)
+        validation_raw_dps = self.raw_data_points_for_ml_stage(MLStage.VALIDATE,
+                                                               perform_sampling=True)
         for epoch in range(self.training_epochs):
             epoch_info = self.run_single_training_epoch(epoch,
                                                         dl,
@@ -976,20 +995,29 @@ class TransformerRunner:
             if self.perform_validation and (epoch + 1) % self.save_frequency == 0:
                 train_info['steps_sum'] = 0
                 train_info['loss_sum'] = 0.  # TODO(Niels): Move outside of `if`?
-                best_bleu = self.run_single_evaluation_epoch(validation_raw_dps,
-                                                             MLStage.VALIDATE,
-                                                             best_bleu)
+                bleu_score = self.run_single_evaluation_epoch(validation_raw_dps,
+                                                              MLStage.VALIDATE)
+                if  bleu_score > best_bleu:
+                    self.log_validation_bleu_score_update(old=best_bleu, new=bleu_score)
+                    best_bleu = bleu_score
+                    self.save_transformer()
 
     def run_testing_stage(self) -> None:
         """Runs the transformer through a complete testing stage.
         
-        A testing stage consists of a single testing epoch. In this epoch,
-        the transformer translates never-before-seen natural language sentences
-        into predicted query language sentences, which are subsequently
-        compared to ground-truth test query language sentences.
+        A testing stage consists of a single testing epoch, potentially
+        preceded by a single validation epoch (if `perform_validation` was set
+        to `True`). In the testing epoch, the transformer translates
+        never-before-seen natural language sentences into predicted query
+        language sentences, which are subsequently compared to ground-truth
+        test query language sentences.
         """
+        if self.perform_validation:
+            validation_raw_dps = self.raw_data_points_for_ml_stage(MLStage.VALIDATE)
+            _ = self.run_single_evaluation_epoch(validation_raw_dps,
+                                                 MLStage.VALIDATE)
         test_raw_dps = self.raw_data_points_for_ml_stage(MLStage.TEST)
-        self.run_single_evaluation_epoch(test_raw_dps, MLStage.TEST)
+        _ = self.run_single_evaluation_epoch(test_raw_dps, MLStage.TEST)
 
     def run(self) -> None:
         """Applies the transformer to the task of transforming natural language
