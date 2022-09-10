@@ -9,6 +9,15 @@
 # set to some value.
 
 
+#     General
+
+
+
+# `$PROJECT_ROOT` stores the file system location of this project.
+#   Note: the path must NOT end in a slash ('/').
+PROJECT_ROOT="/absolute/path/to/this/project"
+
+
 
 
 #     Dataset creation
@@ -20,7 +29,7 @@
 # Google Cloud service account credentials, which Google Cloud hands to you in
 # the form of a JSON file.
 #   Refer to `documentation/google-cloud.md` for details.
-GOOGLE_APPLICATION_CREDENTIALS="${PWD}/.service-account-key.json"
+GOOGLE_APPLICATION_CREDENTIALS="${PROJECT_ROOT}/.service-account-key.json"
 
 # `$SPLIT` stores the LC-QuAD 2.0 dataset split that you want programs to work
 # on. The only two legal values for it are: "train" and "test".
@@ -88,7 +97,7 @@ REFERENCE_MASKED_FILE="/path/to/masks.json"
 # `$MODELS_DIR` stores the directory under which all trained transformer models
 # should reside. Although it is possible to change this path, there is no need
 # to change it.
-MODELS_DIR="${PWD}/resources/models"
+MODELS_DIR="${PROJECT_ROOT}/resources/models"
 
 # `$MODEL_NAME` stores the name of your transformer model. Once it has been
 # saved to disk, it can be found under `${MODELS_DIR}/${MODEL_NAME}`.
@@ -132,7 +141,7 @@ DECODER_ID_OR_PATH="bert-base-multilingual-cased"
 # `$DATASET_DIR` stores a file system path to a directory. It is the directory
 # under which the input training, validation, and testing data to transformer
 # models resides.
-DATASET_DIR="${PWD}/resources/dataset/finalised"
+DATASET_DIR="${PROJECT_ROOT}/resources/dataset/finalised"
 
 # `$NATURAL_LANGUAGE` stores a natural language. It is the the input language
 # of the transformer.

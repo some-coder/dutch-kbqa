@@ -7,6 +7,7 @@ resources/**
 # Configuration
 .env*
 .*.json
+environments/
 
 # File systems
 .DS_Store
