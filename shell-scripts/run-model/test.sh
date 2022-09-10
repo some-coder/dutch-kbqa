@@ -20,10 +20,10 @@ fi
 PYTHONHASHSEED=$SEED  # Should be set statically. See Stack Overflow question ID 25684349.
 CUBLAS_WORKSPACE_CONFIG=$MY_CUBLAS_WORKSPACE_CONFIG
 python3 source/py-model/dutch_kbqa_py_model/main.py \
-	--model_type "$MODEL_TYPE" \
-	--model_architecture "$MODEL_ARCHITECTURE" \
-	--encoder_id_or_path "$ENCODER_ID_OR_PATH" \
-	--decoder_id_or_path "$DECODER_ID_OR_PATH" \
+	--enc_model_type "$ENC_MODEL_TYPE" \
+	--dec_model_type "$DEC_MODEL_TYPE" \
+	--enc_id_or_path "$ENC_ID_OR_PATH" \
+	--dec_id_or_path "$DEC_ID_OR_PATH" \
         --dataset_dir "$DATASET_DIR" \
 	--natural_language "$NATURAL_LANGUAGE" \
 	--query_language "$QUERY_LANGUAGE" \

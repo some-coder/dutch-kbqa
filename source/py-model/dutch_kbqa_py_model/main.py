@@ -3,9 +3,10 @@
 from argparse import ArgumentParser
 from pathlib import Path, PurePosixPath
 from dutch_kbqa_py_model.model.run_transformer import SUPPORTED_MODEL_TRIPLES, \
-                                                      SUPPORTED_ARCHITECTURES, \
                                                       TransformerRunner
-from dutch_kbqa_py_model.utilities import NO_DISTRIBUTION_RANK, \
+from dutch_kbqa_py_model.utilities import TRUE_STRINGS, \
+                                          FALSE_STRINGS, \
+                                          NO_DISTRIBUTION_RANK, \
                                           NaturalLanguage, \
                                           QueryLanguage, \
                                           hugging_face_hub_model_exists, \
@@ -13,16 +14,12 @@ from dutch_kbqa_py_model.utilities import NO_DISTRIBUTION_RANK, \
 from typing import List, Union
 
 
-ARG_PARSE_BOOLEAN_TRUE = ['True', 'true', 'T', 't']
-ARG_PARSE_BOOLEAN_FALSE = ['False', 'false', 'F', 'f']
-
-
 def boolean_argument_parser_choices() -> List[str]:
     """Returns strings that the argument parser considers as booleans.
 
     :returns: Strings regarded as being boolean values.
     """
-    return [*ARG_PARSE_BOOLEAN_TRUE, *ARG_PARSE_BOOLEAN_FALSE]
+    return [*TRUE_STRINGS, *FALSE_STRINGS]
 
 
 def interpret_boolean_argument_parser_choice(choice: str) -> bool:
@@ -32,14 +29,14 @@ def interpret_boolean_argument_parser_choice(choice: str) -> bool:
     :returns: A Python primitive boolean value.
     :throws: `ValueError` if `choice` cannot be interpreted as a `bool`.
     """
-    if choice in ARG_PARSE_BOOLEAN_TRUE:
+    if choice in TRUE_STRINGS:
         return True
-    elif choice in ARG_PARSE_BOOLEAN_FALSE:
+    elif choice in FALSE_STRINGS:
         return False
     else:
         raise ValueError(f'Choice \'{choice}\' cannot be interpreted as ' +
                          'boolean. Use one of the following values: ' +
-                         f'{ARG_PARSE_BOOLEAN_TRUE + ARG_PARSE_BOOLEAN_FALSE}')
+                         f'{TRUE_STRINGS + FALSE_STRINGS}')
 
 
 def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
@@ -50,24 +47,24 @@ def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Fine-tune BERT-based transformers ' +
                                         'for WikiData question-answering.')
     # Required arguments.
-    parser.add_argument('--model_type',
+    parser.add_argument('--enc_model_type',
                         type=str,
-                        help='The en- and decoder language model type.',
+                        help='The encoder language model type.',
                         choices=SUPPORTED_MODEL_TRIPLES.keys(),
                         required=True)
-    parser.add_argument('--model_architecture',
+    parser.add_argument('--dec_model_type',
                         type=str,
-                        help='The transformer architecture.',
-                        choices=SUPPORTED_ARCHITECTURES,
+                        help='The decoder language model type.',
+                        choices=SUPPORTED_MODEL_TRIPLES.keys(),
                         required=True)
-    parser.add_argument('--encoder_id_or_path',
+    parser.add_argument('--enc_id_or_path',
                         type=str,
                         help='A file system path to a pre-trained encoder ' +
                              'language model (enclosing folder or ' +
                              'configuration JSON file), or a model ID of a ' +
                              'model hosted on `huggingface.co`.',
                         required=True)
-    parser.add_argument('--decoder_id_or_path',
+    parser.add_argument('--dec_id_or_path',
                         type=str,
                         help='A file system path to a pre-trained decoder ' +
                              'language model (enclosing folder or ' +
@@ -122,20 +119,20 @@ def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
     parser.add_argument('--perform_training',
                         type=str,
                         help='Whether to perform the training stage.',
-                        choices=ARG_PARSE_BOOLEAN_TRUE +
-                                ARG_PARSE_BOOLEAN_FALSE,
+                        choices=TRUE_STRINGS +
+                                FALSE_STRINGS,
                         required=True)
     parser.add_argument('--perform_validation',
                         type=str,
                         help='Whether to perform the validation stage.',
-                        choices=ARG_PARSE_BOOLEAN_TRUE +
-                                ARG_PARSE_BOOLEAN_FALSE,
+                        choices=TRUE_STRINGS +
+                                FALSE_STRINGS,
                         required=True)
     parser.add_argument('--perform_testing',
                         type=str,
                         help='Whether to perform the testing stage.',
-                        choices=ARG_PARSE_BOOLEAN_TRUE +
-                                ARG_PARSE_BOOLEAN_FALSE,
+                        choices=TRUE_STRINGS +
+                                FALSE_STRINGS,
                         required=True)
     parser.add_argument('--save_dir',
                         type=str,
@@ -154,28 +151,38 @@ def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
                              '2^32 - 1], both ends inclusive.',
                         required=True)
     # Optional or situationally required arguments.
-    parser.add_argument('--config_name',
+    parser.add_argument('--enc_config_name',
                         type=str,
-                        help='An en- and decoder language model ' +
-                             'configuration if you don\'t wish to use the ' +
-                             'default one associated with `model_type`.')
-    parser.add_argument('--tokeniser_name',
+                        help='An encoder language model configuration if ' +
+                             'you don\'t wish to use the default one ' +
+                             'associated with `enc_model_type`.')
+    parser.add_argument('--dec_config_name',
                         type=str,
-                        help='An en- and decoder language model tokeniser if' +
+                        help='A decoder language model configuration if ' +
+                             'you don\'t wish to use the default one ' +
+                             'associated with `dec_model_type`.')
+    parser.add_argument('--enc_tokeniser_name',
+                        type=str,
+                        help='An encoder language model tokeniser if' +
                              ' you don\'t wish to use the default one ' +
-                             'associated with `model_type`.')
+                             'associated with `enc_model_type`.')
+    parser.add_argument('--dec_tokeniser_name',
+                        type=str,
+                        help='A decoder language model tokeniser if' +
+                             ' you don\'t wish to use the default one ' +
+                             'associated with `dec_model_type`.')
     parser.add_argument('--treat_transformer_as_uncased',
                         type=str,
                         default='false',
-                        choices=ARG_PARSE_BOOLEAN_TRUE +
-                                ARG_PARSE_BOOLEAN_FALSE,
+                        choices=TRUE_STRINGS +
+                                FALSE_STRINGS,
                         help='Whether to treat the transformer as an uncased' +
                              'model.')
     parser.add_argument('--use_cuda',
                         type=str,
                         default='true',
-                        choices=ARG_PARSE_BOOLEAN_TRUE +
-                                ARG_PARSE_BOOLEAN_FALSE,
+                        choices=TRUE_STRINGS +
+                                FALSE_STRINGS,
                         help='Whether to use CUDA if it is available.')
     parser.add_argument('--training_batch_size',
                         type=int,
@@ -279,10 +286,14 @@ def dutch_kbqa_model_namespace_to_runner(parser: ArgumentParser) -> \
     assert(ns.learning_rate > 0.)
     assert(ns.beam_size > 0)
     assert(ns.seed >= 0)
-    if ns.config_name is not None:
-        assert(string_is_existing_hugging_face_hub_model(ns.config_name))
-    if ns.tokeniser_name is not None:
-        assert(string_is_existing_hugging_face_hub_model(ns.tokeniser_name))
+    if ns.enc_config_name is not None:
+        assert(string_is_existing_hugging_face_hub_model(ns.enc_config_name))
+    if ns.dec_config_name is not None:
+        assert(string_is_existing_hugging_face_hub_model(ns.dec_config_name))
+    if ns.enc_tokeniser_name is not None:
+        assert(string_is_existing_hugging_face_hub_model(ns.enc_tokeniser_name))
+    if ns.dec_tokeniser_name is not None:
+        assert(string_is_existing_hugging_face_hub_model(ns.dec_tokeniser_name))
     assert(ns.gradient_accumulation_steps > 0)
     assert(ns.weight_decay >= 0.)
     assert(ns.adam_epsilon > 0.)
@@ -300,10 +311,10 @@ def dutch_kbqa_model_namespace_to_runner(parser: ArgumentParser) -> \
         assert(ns.load_file is not None)
     
     return TransformerRunner(
-        model_type=ns.model_type,
-        model_architecture=ns.model_architecture,
-        encoder_id_or_path=language_model_id_or_path(ns.encoder_id_or_path),
-        decoder_id_or_path=language_model_id_or_path(ns.decoder_id_or_path),
+        enc_model_type=ns.enc_model_type,
+        dec_model_type=ns.dec_model_type,
+        enc_id_or_path=language_model_id_or_path(ns.enc_id_or_path),
+        dec_id_or_path=language_model_id_or_path(ns.dec_id_or_path),
         dataset_dir=Path(ns.dataset_dir).resolve(),
         natural_language=NaturalLanguage(ns.natural_language),
         query_language=QueryLanguage(ns.query_language),
@@ -316,8 +327,10 @@ def dutch_kbqa_model_namespace_to_runner(parser: ArgumentParser) -> \
         perform_testing=test,
         save_dir=Path(ns.save_dir).resolve(),
         seed=ns.seed,
-        config_name=ns.config_name,
-        tokeniser_name=ns.tokeniser_name,
+        enc_config_name=ns.enc_config_name,
+        dec_config_name=ns.dec_config_name,
+        enc_tokeniser_name=ns.enc_tokeniser_name,
+        dec_tokeniser_name=ns.dec_tokeniser_name,
         treat_transformer_as_uncased=
             interpret_boolean_argument_parser_choice(ns.treat_transformer_as_uncased),
         use_cuda=

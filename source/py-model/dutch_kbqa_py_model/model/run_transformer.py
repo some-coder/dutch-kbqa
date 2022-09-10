@@ -77,11 +77,19 @@ class ModelTriple(NamedTuple):
     tokeniser: Type[PreTrainedTokenizer]
 
 
-# A supported en- and decoder language model.
-SupportedModelType = Union[Literal['bert'], Literal['roberta']]
-# A supported encoder-decoder transformer architecture. 'Random' means:
-# initialised randomly, so no pretraining.
-SupportedArchitecture = Union[Literal['bert-random'], Literal['bert-bert']]
+# A supported en- and decoder language model. A `'random'` prefix indicates
+# that the model's configuration, model architecture, and tokeniser will be
+# used (like it would be normally), except that the model's weights are
+# initialised randomly. So the model is parameterised as if its pretraining
+# weights have never been imposed.
+SupportedModelType = Union[Literal['bert'],
+                           Literal['random-bert'],
+                           Literal['roberta'],
+                           Literal['random-roberta']]
+# Either an encoder ('enc') or a decoder ('dec') language model.
+EncOrDec = Union[Literal['enc'], Literal['dec']]
+# An encoder language model for use in the first half of a transformer.
+Encoder = Union[torch.nn.TransformerEncoder, PreTrainedModel]
 # A decoder language model for use in the second half of a transformer.
 Decoder = Union[torch.nn.TransformerDecoder, PreTrainedModel]
 # A type of PyTorch `TensorDataset` sampler used by the `TransformerRunner`.
@@ -118,15 +126,17 @@ class EvaluationPair(NamedTuple):
 
 SUPPORTED_MODEL_TRIPLES: Dict[SupportedModelType, ModelTriple] = \
     {'bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
-     'roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)}
-SUPPORTED_ARCHITECTURES: Set[SupportedArchitecture] = {'bert-random', 'bert-bert'}
+     'random-bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
+     'roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)
+     'random-roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)}
 
 
 class TransformerRunner:
     """A convenience class that helps you run transformer models."""
 
-    # The number of decoding layers to use.
-    NUM_DECODE_LAYERS = 6
+    # The number of layers to use for en- and decode language models that are
+    # initialised randomly instead of via pretrained weights files.
+    NUM_RANDOM_LAYERS = 6
     # The maximum number of data points to include when performing a sampling
     # operation while reading raw data points. Inclusive.
     MAX_SAMPLES = int(1e3)
@@ -146,10 +156,10 @@ class TransformerRunner:
     SAVE_FILE_NAME = 'pytorch-model'
 
     def __init__(self,
-                 model_type: SupportedModelType,
-                 model_architecture: SupportedArchitecture,
-                 encoder_id_or_path: Union[str, PurePosixPath],
-                 decoder_id_or_path: Union[str, PurePosixPath],
+                 enc_model_type: SupportedModelType,
+                 dec_model_type: SupportedModelType,
+                 enc_id_or_path: Union[str, PurePosixPath],
+                 dec_id_or_path: Union[str, PurePosixPath],
                  dataset_dir: Path,
                  natural_language: NaturalLanguage,
                  query_language: QueryLanguage,
@@ -162,8 +172,10 @@ class TransformerRunner:
                  perform_testing: bool,
                  save_dir: Path,
                  seed: int,
-                 config_name: Optional[str],
-                 tokeniser_name: Optional[str],
+                 enc_config_name: Optional[str],
+                 dec_config_name: Optional[str],
+                 enc_tokeniser_name: Optional[str],
+                 dec_tokeniser_name: Optional[str],
                  treat_transformer_as_uncased: bool,
                  use_cuda: bool,
                  training_batch_size: Optional[int],
@@ -177,12 +189,12 @@ class TransformerRunner:
                  load_file: Optional[Path]) -> None:
         """Constructs a new transformer runner.
         
-        :param model_type: The en- and decoder language model type.
-        :param model_architecture: The transformer architecture.
-        :param encoder_id_or_path: A file system path to a pre-trained encoder
+        :param enc_model_type: The encoder language model type.
+        :param dec_model_type: The decoder language model type.
+        :param enc_id_or_path: A file system path to a pre-trained encoder
             language model (enclosing folder or configuration JSON file), or a
             model ID of a model hosted on `huggingface.co`.
-        :param decoder_id_or_path: A file system path to a pre-trained decoder
+        :param dec_id_or_path: A file system path to a pre-trained decoder
             language model (enclosing folder or configuration JSON file), or a
             model ID of a model hosted on `huggingface.co`.
         :param dataset_dir: A file system path to a directory. The directory
@@ -210,10 +222,14 @@ class TransformerRunner:
             reproducibility in model results. Take care to switch seeds if it
             is your intention to obtain varying results.) Must be an integer in
             the range [1, 2^32 - 1], both ends inclusive.
-        :param config_name: An en- and decoder language model configuration if
-            you don't wish to use the default one associated with `model_type`.
-        :param tokeniser_name: An en- and decoder language model tokeniser if
-            you don't wish to use the default one associated with `model_type`.
+        :param enc_config_name: An encoder language model configuration if you
+            don't wish to use the default one associated with `enc_model_type`.
+        :param dec_config_name: A decoder language model configuration if you
+            don't wish to use the default one associated with `dec_model_type`.
+        :param enc_tokeniser_name: An encoder language model tokeniser if you
+            don't wish to use the default one associated with `enc_model_type`.
+        :param dec_tokeniser_name: A decoder language model tokeniser if you
+            don't wish to use the default one associated with `dec_model_type`.
         :param treat_transformer_as_uncased: Whether to treat the transformer
             as an uncased model.
         :param use_cuda: Whether to use CUDA if it is available.
@@ -244,10 +260,10 @@ class TransformerRunner:
             file system path to a `.bin` file. The path to a trained
             transformer.
         """
-        self.model_type = model_type
-        self.model_architecture = model_architecture
-        self.encoder_id_or_path = encoder_id_or_path
-        self.decoder_id_or_path = decoder_id_or_path
+        self.enc_model_type = enc_model_type
+        self.dec_model_type = dec_model_type
+        self.enc_id_or_path = enc_id_or_path
+        self.dec_id_or_path = dec_id_or_path
         self.dataset_dir = dataset_dir
         self.natural_language = natural_language
         self.query_language = query_language
@@ -260,8 +276,10 @@ class TransformerRunner:
         self.perform_testing = perform_testing
         self.save_dir = save_dir
         self.seed = seed
-        self.config_name = config_name
-        self.tokeniser_name = tokeniser_name
+        self.enc_config_name = enc_config_name
+        self.dec_config_name = dec_config_name
+        self.enc_tokeniser_name = enc_tokeniser_name
+        self.dec_tokeniser_name = dec_tokeniser_name
         self.treat_transformer_as_uncased = treat_transformer_as_uncased
         self.use_cuda = use_cuda
         self.training_batch_size = training_batch_size
@@ -285,8 +303,10 @@ class TransformerRunner:
         self.ensure_save_dir_exists()
 
         self.trf: Transformer
-        self.tokeniser: PreTrainedTokenizer
-        self.trf, self.tokeniser = self.initialised_transformer_and_tokeniser()
+        self.enc_tokeniser: PreTrainedTokenizer
+        self.dec_tokeniser: PreTrainedTokenizer
+        self.trf, self.enc_tokeniser, self.dec_tokeniser = \
+            self.initialised_transformer_and_tokeniser()
         self.prepare_transformer_for_distributed_training()
 
     def log_arguments(self) -> None:
@@ -355,78 +375,103 @@ class TransformerRunner:
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
-    def instantiated_config(self) -> PretrainedConfig:
-        """Returns an instantiated transformer configuration.
-        
-        :returns: The configuration.
+    def is_random_model_type(self, model_type: SupportedModelType) -> bool:
+        """Determines whether the supplied `model_type` is one of which the
+        model weights should be initialised randomly, instead of imposing them
+        from a pretrained version of the model.
+
+        :param model_type: The en- or decoder model type. Note: it must be the
+            string, not a `Type[PreTrainedModel]`!
+        :returns: The question's answer.
         """
-        cfg_cls, _, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
-        config = cfg_cls.from_pretrained(self.encoder_id_or_path
-                                         if self.config_name is None else
-                                         self.config_name)
-        if self.model_architecture == 'bert-random':
-            assert(hasattr(config, 'hidden_size'))
-            assert(type(config.hidden_size) == int)
-            assert(hasattr(config, 'num_attention_heads'))
-            assert(type(config.num_attention_heads) == int)
-        return config
+        return model_type.startswith('random-')
+
+    def instantiated_configs(self) -> Tuple[PretrainedConfig, PretrainedConfig]:
+        """Returns instantiated transformer en- and decoder configurations.
+        
+        :returns: A pair. The en- and decoder configurations, respectively.
+        """
+        configs: Tuple[PretrainedConfig, ...] = tuple()
+        prefix: EncOrDec
+        for prefix in ('enc', 'dec'):
+            model_type_str: SupportedModelType = \
+                getattr(self, f'{prefix}_model_type')
+            id_or_path: Union[str, PurePosixPath] = \
+                getattr(self, f'{prefix}_id_or_path'
+            config_name: Optional[str] = \
+                getattr(self, f'{prefix}_config_name')
+            cfg_cls, _, _ = SUPPORTED_MODEL_TRIPLES[model_type_str]
+            config = cfg_cls.from_pretrained(id_or_path
+                                             if config_name is None else
+                                             config_name)
+            if prefix == 'dec':
+                # Add additional details when considering the decoder.
+                config.is_decoder = True
+                config.add_cross_attention = True
+            if self.is_random_model_type(model_type_str):
+                assert(hasattr(config, 'hidden_size')
+                assert(type(config.hidden_size == int))
+                assert(hasattr(config, 'num_attention_heads'))
+                assert(type(config.num_attention_heads) == int)
+            configs += config,
+        assert(len(configs) == 2)
+        return cast(Tuple[PretrainedConfig, PretrainedConfig],
+                    tuple(configs))
     
-    def instantiated_encoder(self,
-                             config: PretrainedConfig) -> PreTrainedModel:
-        """Returns an instantiated encoder language model.
+    def instantiated_en_or_decoder(self,
+                                   config: PretrainedConfig,
+                                   enc_or_dec: EncOrDec) -> \
+            Union[Encoder, Decoder]:
+        """Returns an instantiated en- or decoder language model.
         
-        :param config: The configuration from which to initialise the model.
-        :returns: The instantiated encoder.
+        :param config: The en- or decoder configuration from which to
+            initialise the model.
+        :param enc_or_dec: Whether to initialise an encoder or a decoder.
+        :returns: The instantiated en- or decoder.
         """
-        _, mdl_cls, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
-        return mdl_cls.from_pretrained(self.encoder_id_or_path,
-                                       config=config)
-    
-    def instantiated_decoder(self,
-                             config: PretrainedConfig) -> \
-            Decoder:
-        """Returns an instantiated decoder language model.
-        
-        :param config: An encoder-side language model configuration. Will be
-            used to derive a decoder-side language model configuration.
-        :returns: The instantiated decoder. May vary in precise type depending
-            on the specified `model_architecture` during the transformer
-            runner's initialisation.
-        """
-        if self.model_architecture == 'bert-random':
-            decode_layer = torch.nn.TransformerDecoderLayer(d_model=config.hidden_size,
-                                                            nhead=config.num_attention_heads)
-            return torch.nn.TransformerDecoder(decode_layer,
-                                               num_layers=TransformerRunner.NUM_DECODE_LAYERS)
-        elif self.model_architecture == 'bert-bert':
-            _, mdl_cls, _ = SUPPORTED_MODEL_TRIPLES[self.model_type]
-            config_name = self.config_name \
-                          if self.config_name is not None else \
-                          self.decoder_id_or_path
-            decoder_config = config.__class__.from_pretrained(config_name)
-            decoder_config.is_decoder = True
-            decoder_config.add_cross_attention = True
-            return mdl_cls.from_pretrained(self.decoder_id_or_path,
-                                           config=decoder_config)
+        model_type_str: SupportedModelType = \
+            getattr(self, f'{enc_or_dec}_model_type')
+        if self.is_random_model_type(model_type_str):
+            layer_cls = torch.nn.EncoderLayer \
+                        if enc_or_dec == 'enc' else \
+                        torch.nn.DecoderLayer
+            coder_cls = torch.nn.TransformerEncoder \
+                        if enc_or_dec == 'enc' else \
+                        torch.nn.TransformerDecoder
+            layer = layer_cls(d_model=config.hidden_size,
+                              nhead=config.num_attention_heads)
+            return coder_cls(layer,
+                             num_layers=TransformerRunner.NUM_RANDOM_LAYERS)
         else:
-            raise ValueError('Model architecture \'%s\' isn\'t valid!' %
-                             (self.model_architecture,))
-    
-    def instantiated_tokeniser(self) -> PreTrainedTokenizer:
+            _, mdl_cls, _ = SUPPORTED_MODEL_TRIPLES[model_type_str]
+            id_or_path: Union[str, PurePosixPath] = \
+                getattr(self, f'{enc_or_dec}_id_or_path')
+            return mdl_cls.from_pretrained(id_or_path, config=config)
+
+    def instantiated_tokeniser(self,
+                               enc_or_dec: EncOrDec) -> PreTrainedTokenizer:
         """Returns an instantiated tokeniser.
         
+        :param enc_or_dec: Whether the tokeniser is meant for tokenisation at
+            the en- or decoding side (first and second half of the transformer,
+            respectively).
         :returns: The tokeniser.
         """
-        _, _, tok_cls = SUPPORTED_MODEL_TRIPLES[self.model_type]
-        return tok_cls.from_pretrained(
-            self.encoder_id_or_path
-                if self.tokeniser_name is None else
-                self.tokeniser_name,
-            do_lower_case=self.treat_transformer_as_uncased)
+        model_type_str: SupportedModelType = \
+            getattr(self, f'{enc_or_dec}_model_type')
+        _, _, tok_cls = SUPPORTED_MODEL_TRIPLES[model_type_str]
+        id_or_path: Union[str, PurePosixPath] = \
+            getattr(self, f'{enc_or_dec}_id_or_path')
+        tok_name: Optional[str] = \
+            getattr(self, f'{enc_or_dec}_tokeniser_name')
+        name = id_or_path if tok_name is None else tok_name
+        return tok_cls.from_pretrained(name,
+                                       do_lower_case=self.treat_transformer_as_uncased)
 
-    def initialised_transformer_and_tokeniser(self) -> \
-            Tuple[Transformer, PreTrainedTokenizer]:
-        """Initialises the requested transformer model and tokeniser.
+    def initialised_transformer_and_tokenisers(self) -> \
+            Tuple[Transformer, PreTrainedTokenizer, PreTrainedTokenizer]:
+        """Initialises the requested transformer model and the en- and decoder
+        tokenisers.
 
         'Initialising a model' here means: (1) instantiating the `Transformer`
         class, (2) loading existing transformer parameters if needed, and (3)
@@ -434,10 +479,10 @@ class TransformerRunner:
         instantiation does not involve preparing the transformer for multi-GPU
         or distributed training; that must be done in a separate function call.
 
-        :returns: A pair. First, the initialised transformer model. Second,
-            the tokeniser.
+        :returns: A triple. First, the initialised transformer model. Second,
+            the encoder tokeniser. Third and last, the decoder tokeniser.
         """
-        config = self.instantiated_config()
+        enc_config, dec_config = self.instantiated_configs()
         enc_msg = 'Initialising encoder model. ' + \
                   'Note that there may be warnings of `cls.predictions` ' + \
                   'weights not being set; this is normal.'
@@ -446,19 +491,23 @@ class TransformerRunner:
                   'and (2) `crossattention` weights not being set; this ' + \
                   'is normal.'
         LOGGER.info(enc_msg)
-        encoder = self.instantiated_encoder(config)
+        encoder = self.instantiated_en_or_decoder(enc_config, enc_or_dec='enc')
         LOGGER.info('Successfully initialised encoder.')
         LOGGER.info(dec_msg)
-        decoder = self.instantiated_decoder(config)
+        decoder = self.instantiated_en_or_decoder(dec_config, enc_or_dec='dec')
         LOGGER.info('Successfully initialised decoder.')
-        tokeniser = self.instantiated_tokeniser()
+        enc_tokeniser = self.instantiated_tokeniser(enc_or_dec='enc')
+        dec_tokeniser = self.instantiated_tokeniser(enc_or_dec='dec')
+        # The en- and decoder configurations should agree on whether to use
+        # TorchScript or not.
+        dec_config.torchscript = True if enc_config.torchscript else False
         trf = Transformer(encoder,
                           decoder,
-                          config,
+                          dec_config,
                           self.beam_size,
                           max_length=self.max_query_language_length,
-                          sos_id=tokeniser.cls_token_id,
-                          eos_id=tokeniser.sep_token_id)
+                          sos_id=dec_tokeniser.cls_token_id,
+                          eos_id=dec_tokeniser.sep_token_id)
         if self.load_file is None:
             LOGGER.info('No transformer file to load: starting fine-tuning.')
         else:
@@ -467,7 +516,7 @@ class TransformerRunner:
             trf.load_state_dict(torch.load(self.load_file))
             LOGGER.info('Transformer reloading successful.')
         trf.to(self.device)
-        return trf, tokeniser
+        return trf, enc_tokeniser, dec_tokeniser
 
     def prepare_transformer_for_distributed_training(self) -> None:
         """Sets up this transformer runner's transformer for either operating
@@ -563,7 +612,8 @@ class TransformerRunner:
         :returns: Transformer-ready data points for the requested ML stage.
         """
         return transformer_data_points_from_raw(raw_data_points,
-                                                self.tokeniser,
+                                                self.enc_tokeniser,
+                                                self.dec_tokeniser,
                                                 self.max_natural_language_length,
                                                 self.max_query_language_length,
                                                 ml_stage)
@@ -582,7 +632,7 @@ class TransformerRunner:
         """
         attr_prefixes = ('inp',)
         if ml_stage == MLStage.TRAIN:
-            attr_prefixes += ('out',)
+            attr_prefixes += 'out',
         tensors: List[torch.Tensor] = []
         for attr_prefix in attr_prefixes:
             for attr_suffix in ('ids', 'att_mask'):
@@ -776,8 +826,8 @@ class TransformerRunner:
                     if 0 in tkn_ids:
                         # Remove any zero-padding tokens to the right.
                         tkn_ids = tkn_ids[:tkn_ids.index(0)]
-                    sent = self.tokeniser.decode(tkn_ids,
-                                                 clean_up_tokenization_spaces=False)
+                    sent = self.dec_tokeniser.decode(tkn_ids,
+                                                     clean_up_tokenization_spaces=False)
                     sents.append(sent)
         return sents 
 

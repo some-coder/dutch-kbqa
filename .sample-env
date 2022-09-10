@@ -122,21 +122,21 @@ PY_MODEL_PACKAGE_MANAGER="pip"
 # correspond one-to-one with the command-line arguments to `main.py`.
 
 
-# `$MODEL_TYPE` stores the type of en- and decoder language model type to use.
-MODEL_TYPE="bert"
+# `$ENC_MODEL_TYPE` stores the type of encoder language model type to use.
+ENC_MODEL_TYPE="bert"
 
-# `$MODEL_ARCHITECTURE` stores the transformer architecture to use.
-MODEL_ARCHITECTURE="bert-bert"
+# `$DEC_MODEL_TYPE` stores the type of decoder language model type to use.
+DEC_MODEL_TYPE="bert"
 
-# `$ENCODER_ID_OR_PATH` stores either a file system path to a pre-trained
+# `$ENC_ID_OR_PATH` stores either a file system path to a pre-trained
 # encoder language model (enclosing folder or configuration JSON file), or a
 # model ID of a model hosted on `huggingface.co`.
-ENCODER_ID_OR_PATH="bert-base-multilingual-cased"
+ENC_ID_OR_PATH="bert-base-multilingual-cased"
 
-# `$DECODER_ID_OR_PATH` stores either a file system path to a pre-trained
+# `$DEC_ID_OR_PATH` stores either a file system path to a pre-trained
 # decoder language model (enclosing folder or configuration JSON file), or a
 # model ID of a model hosted on `huggingface.co`.
-DECODER_ID_OR_PATH="bert-base-multilingual-cased"
+DEC_ID_OR_PATH="bert-base-multilingual-cased"
 
 # `$DATASET_DIR` stores a file system path to a directory. It is the directory
 # under which the input training, validation, and testing data to transformer
@@ -171,20 +171,35 @@ LEARNING_RATE=0.00002  # 2e-5
 # transformer's output layer (for queries). Must be strictly positive.
 BEAM_SIZE=10
 
-# (Optional.) `$CONFIG_NAME` stores an en- and decoder language model if you
-# don't wish to use the default one associated with `model_type`.
+# (Optional.) `$ENC_CONFIG_NAME` stores an encoder language model if
+# you don't wish to use the default one associated with `enc_model_type`.
 #   To use this environment variable, you should also update
 # `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
 # accordingly.
-# CONFIG_NAME="bert-base-multilingual-uncased"  # For example.
+# ENC_CONFIG_NAME="bert-base-multilingual-uncased"  # For example.
 
-# (Optional.) `$TOKENISER_NAME` stores an en- and decoder language model
-# tokeniser if you don't wish to use the default one associated with
-# `model_type`.
+# (Optional.) `$DEC_CONFIG_NAME` stores a decoder language model if
+# you don't wish to use the default one associated with `dec_model_type`.
 #   To use this environment variable, you should also update
 # `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
 # accordingly.
-# TOKENISER_NAME="bert-base-multilingual-uncased"  # For example.
+# DEC_CONFIG_NAME="bert-base-multilingual-uncased"  # For example.
+
+# (Optional.) `$ENC_TOKENISER_NAME` stores an encoder language model
+# tokeniser if you don't wish to use the default one associated with
+# `enc_model_type`.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# ENC_TOKENISER_NAME="bert-base-multilingual-uncased"  # For example.
+
+# (Optional.) `$DEC_TOKENISER_NAME` stores an en- and decoder language model
+# tokeniser if you don't wish to use the default one associated with
+# `dec_model_type`.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# DEC_TOKENISER_NAME="bert-base-multilingual-uncased"  # For example.
 
 # (Optional.) `$TREAT_TRANSFORMER_AS_UNCASED` stores a Boolean that indicates
 # whether to treat the transformer as uncased.

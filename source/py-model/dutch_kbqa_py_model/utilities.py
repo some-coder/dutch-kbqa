@@ -15,17 +15,23 @@ from typing import Optional, List, Tuple, Union, NamedTuple
 from typing_extensions import Literal
 
 
+# Legal string equivalents for Booleans.
+TRUE_STRINGS = ('True', 'true', 'T', 't')
+FALSE_STRINGS = ('False', 'false', 'F', 'f')
+
+
 # Debugging.
 try:
-    if os.environ['DEBUG_MODE'] in ('True', 'true', 'T', 't'):
+    if os.environ['DEBUG_MODE'] in TRUE_STRINGS:
         DEBUG_MODE = True
-    elif os.environ['DEBUG_MODE'] in ('False', 'false', 'F', 'f'):
+    elif os.environ['DEBUG_MODE'] in FALSE_STRINGS:
         DEBUG_MODE = False
     else:
         raise ValueError('Environment variable `DEBUG_MODE`, if set, should ' +
                          'have strictly one of the following values: ' +
-                         '\'True\', \'true\', \'T\', \'t\' (for enabling ' +
-                         'debug mode), \'False\', \'false\', \'F\', or ' +
+                         f'{", ".join([f"\'{val}\'" for val in TRUE_STRINGS])}' +
+                         ' (for enabling debug mode), ' +
+                         f'{", ".join([f"\'{val}\'" for val in FALSE_STRINGS])}' +
                          '\'f\' (for disabling debug mode). If not set, ' +
                          'debug mode is disabled.')
 except KeyError:

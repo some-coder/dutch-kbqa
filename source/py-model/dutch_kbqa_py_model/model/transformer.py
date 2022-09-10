@@ -95,7 +95,8 @@ class Transformer(torch.nn.Module):
     LABEL_SMOOTHING_SCALAR = .1
 
     def __init__(self,
-                 encoder: PreTrainedModel,
+                 encoder: Union[torch.nn.TransformerEncoder,
+                                PreTrainedModel]
                  decoder: Union[torch.nn.TransformerDecoder,
                                 PreTrainedModel],
                  config: PretrainedConfig,
@@ -112,7 +113,9 @@ class Transformer(torch.nn.Module):
             the transformer. Either a PyTorch transformer decoder model or a
             HuggingFace decoder model.
         :param config: A configuration to specify parts of the architecture of
-            this transformer with.
+            this transformer with. If you make an explicit distinction between
+            an en- and decoder-side configuration, supply the decoder-side
+            configuration here.
         :param beam_size: The beam size to use. Minimally 1, maximally the
             output vocabulary size, both ends inclusive.
         :param max_length: The maximum (inclusive) number of tokens to include

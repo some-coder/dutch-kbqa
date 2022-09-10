@@ -94,8 +94,10 @@ def transformer_data_point_from_raw(raw_data_point: RawDataPoint,
     
     :param raw_data_point: The raw data point to process the input or output
         sentence of, depending on the value of `half`.
-    :param tokeniser: A tokeniser to help in obtaining token IDs for the data
-        point's sentence.
+    :param tokeniser: An en- or decoder-side tokeniser to help in obtaining
+        token IDs for the data point's sentence. If `half` is `'input'`, supply
+        the encoder-side tokeniser; if `half` is `'output'`, supply the
+        decoder-side tokeniser.
     :param max_length: The maximum length (in tokens) that the natural language
         or query language sentence may assume, including the start- and
         end-of-sentence tokens. Inclusive.
@@ -166,7 +168,8 @@ def log_first_data_points(data_points: List[TransformerDataPoint],
 
 
 def transformer_data_points_from_raw(raw_data_points: List[RawDataPoint],
-                                     tokeniser: PreTrainedTokenizer,
+                                     enc_tokeniser: PreTrainedTokenizer,
+                                     dec_tokeniser: PreTrainedTokenizer,
                                      max_natural_language_length: int,
                                      max_query_language_length: int,
                                      ml_stage: MLStage) -> \
@@ -175,8 +178,10 @@ def transformer_data_points_from_raw(raw_data_points: List[RawDataPoint],
     models.
     
     :param raw_data_points: The raw data points to process.
-    :param tokeniser: A tokeniser to help in obtaining token IDs for the data
-        point's sentences.
+    :param enc_tokeniser: An encoder-side tokeniser to help in obtaining token
+        IDs for the data point's sentences.
+    :param dec_tokeniser: A decoder-side tokeniser to help in obtaining token
+        IDs for the data point's sentences.
     :param ml_stage: The machine learning model stage for which
         `raw_data_points` are meant to be used.
     :returns: Processed, transformer model-ready data points.
@@ -186,12 +191,12 @@ def transformer_data_points_from_raw(raw_data_points: List[RawDataPoint],
     for raw_data_point in raw_data_points:
         inp_half, inp_tokens = \
             transformer_data_point_from_raw(raw_data_point,
-                                            tokeniser,
+                                            enc_tokeniser,
                                             max_length=max_natural_language_length,
                                             half='input')
         out_half, out_tokens = \
             transformer_data_point_from_raw(raw_data_point,
-                                            tokeniser,
+                                            dec_tokeniser,
                                             max_length=max_query_language_length,
                                             half='output',
                                             ml_stage=ml_stage)
