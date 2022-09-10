@@ -908,7 +908,7 @@ class TransformerRunner:
         """
         best_ckpt_dir = \
             (self.save_dir / \
-             TransformerRunner.BEST_BLEU_CKPT_DIR).resolve(strict=True)
+             TransformerRunner.BEST_BLEU_CKPT_DIR).resolve()
         if not os.path.exists(best_ckpt_dir):
             os.makedirs(best_ckpt_dir)
         trf_to_save: torch.nn.Module = self.trf.module \
