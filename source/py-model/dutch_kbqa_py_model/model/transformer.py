@@ -2,6 +2,7 @@
 
 Copyright (c) Microsoft Corporation.
 Licensed by Microsoft under the MIT license.
+
 Adapted by GitHub user `some-coder` on 2022-09-06.
 """
 
@@ -96,10 +97,12 @@ class Transformer(torch.nn.Module):
 
     def __init__(self,
                  encoder: Union[torch.nn.TransformerEncoder,
-                                PreTrainedModel]
+                                PreTrainedModel],
                  decoder: Union[torch.nn.TransformerDecoder,
                                 PreTrainedModel],
-                 config: PretrainedConfig,
+                 enc_config: PretrainedConfig,
+                 dec_config: PretrainedConfig,
+                 tie_weights: bool,
                  beam_size: Optional[int] = None,
                  max_length: Optional[int] = None,
                  sos_id: Optional[int] = None,
@@ -112,10 +115,11 @@ class Transformer(torch.nn.Module):
         :param decoder: The decoder language model to use in the second half of
             the transformer. Either a PyTorch transformer decoder model or a
             HuggingFace decoder model.
-        :param config: A configuration to specify parts of the architecture of
-            this transformer with. If you make an explicit distinction between
-            an en- and decoder-side configuration, supply the decoder-side
-            configuration here.
+        :param enc_config: The encoder-side language model configuration.
+        :param dec_config: The decoder-side language model configuration.
+        :param tie_weights: Whether to tie the weights of the en- and decoder
+            embedding layers. Advised when the encoder is identical to the
+            decoder; otherwise, discouraged.
         :param beam_size: The beam size to use. Minimally 1, maximally the
             output vocabulary size, both ends inclusive.
         :param max_length: The maximum (inclusive) number of tokens to include
@@ -135,10 +139,11 @@ class Transformer(torch.nn.Module):
         # defined on them. Without an intersection construct, this notion can't
         # currently be cleanly conferred in Python. Thus, we resort to runtime
         # `hasattr` checks.
-        assert(hasattr(config, 'hidden_size'))
-        assert(type(config.hidden_size) == int)
-        assert(hasattr(config, 'vocab_size'))
-        assert(type(config.vocab_size) == int)
+        for config in (enc_config, dec_config):
+            assert(hasattr(enc_config, 'hidden_size'))
+            assert(type(enc_config.hidden_size) == int)
+            assert(hasattr(enc_config, 'vocab_size'))
+            assert(type(enc_config.vocab_size) == int)
         assert(hasattr(encoder, 'embeddings'))
         assert(isinstance(encoder, torch.nn.Module))
         assert(hasattr(encoder.embeddings, 'word_embeddings'))
@@ -146,20 +151,23 @@ class Transformer(torch.nn.Module):
                           torch.nn.Embedding))
         
         # Further business-logic checks.
-        assert(config.return_dict is True)
+        assert(enc_config.return_dict is True)
         
         self.encoder = encoder
         self.decoder = decoder
-        self.config = config
+        self.enc_config = enc_config
+        self.dec_config = dec_config
         self.register_buffer(name='bias',
                              tensor=torch.tril(torch.ones(2048, 2048)))
-        self.dense = torch.nn.Linear(in_features=config.hidden_size,
-                                     out_features=config.hidden_size)
-        self.lm_head = torch.nn.Linear(in_features=config.hidden_size,
-                                       out_features=config.vocab_size,
+        self.dense = torch.nn.Linear(in_features=self.dec_config.hidden_size,
+                                     out_features=self.dec_config.hidden_size)
+        self.lm_head = torch.nn.Linear(in_features=self.dec_config.hidden_size,
+                                       out_features=self.dec_config.vocab_size,
                                        bias=False)
         self.lsm = torch.nn.LogSoftmax(dim=-1)
-        self.tie_weights()
+        
+        if tie_weights:
+            self.tie_weights()
 
         self.beam_size = beam_size
         self.max_length = max_length
@@ -191,7 +199,7 @@ class Transformer(torch.nn.Module):
                type(module_1.weight) == torch.nn.parameter.Parameter)
         assert(hasattr(module_2, 'weight') and
                type(module_2.weight) == torch.nn.parameter.Parameter)
-        if self.config.torchscript:
+        if self.enc_config.torchscript or self.dec_config.torchscript:
             module_1.weight = torch.nn.Parameter(module_2.weight.clone())
         else:
             module_1.weight = module_2.weight
@@ -251,10 +259,11 @@ class Transformer(torch.nn.Module):
         shift_log_its = lm_log_its[..., :-1, :].contiguous()
         shift_labels = out_ids[..., 1:].contiguous()
 
-        loss_layer = LabelSmoothingLoss(number_classes=self.config.vocab_size,
+        loss_layer = LabelSmoothingLoss(number_classes=self.dec_config.vocab_size,
                                         smoothing=Transformer.LABEL_SMOOTHING_SCALAR)
-        loss = loss_layer(shift_log_its.view(-1, shift_log_its.size(-1))[active_loss],
-                          shift_labels.view(-1)[active_loss])
+        prd = shift_log_its.view(-1, shift_log_its.size(-1))[active_loss]
+        tgt = shift_labels.view(-1)[active_loss]
+        loss = loss_layer(prediction=prd, target=tgt)
         length = active_loss.sum()
         return TransformerNonTestingOutput(loss=loss,
                                            length_scaled_loss=loss * length,

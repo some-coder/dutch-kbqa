@@ -29,9 +29,9 @@ try:
     else:
         raise ValueError('Environment variable `DEBUG_MODE`, if set, should ' +
                          'have strictly one of the following values: ' +
-                         f'{", ".join([f"\'{val}\'" for val in TRUE_STRINGS])}' +
+                         ', '.join([f'\'{val}\'' for val in TRUE_STRINGS]) +
                          ' (for enabling debug mode), ' +
-                         f'{", ".join([f"\'{val}\'" for val in FALSE_STRINGS])}' +
+                         ', '.join([f'\'{val}\'' for val in FALSE_STRINGS]) +
                          '\'f\' (for disabling debug mode). If not set, ' +
                          'debug mode is disabled.')
 except KeyError:

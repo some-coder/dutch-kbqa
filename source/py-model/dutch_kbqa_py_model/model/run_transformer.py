@@ -127,7 +127,7 @@ class EvaluationPair(NamedTuple):
 SUPPORTED_MODEL_TRIPLES: Dict[SupportedModelType, ModelTriple] = \
     {'bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
      'random-bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
-     'roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)
+     'roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer),
      'random-roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)}
 
 
@@ -306,7 +306,7 @@ class TransformerRunner:
         self.enc_tokeniser: PreTrainedTokenizer
         self.dec_tokeniser: PreTrainedTokenizer
         self.trf, self.enc_tokeniser, self.dec_tokeniser = \
-            self.initialised_transformer_and_tokeniser()
+            self.initialised_transformer_and_tokenisers()
         self.prepare_transformer_for_distributed_training()
 
     def log_arguments(self) -> None:
@@ -397,7 +397,7 @@ class TransformerRunner:
             model_type_str: SupportedModelType = \
                 getattr(self, f'{prefix}_model_type')
             id_or_path: Union[str, PurePosixPath] = \
-                getattr(self, f'{prefix}_id_or_path'
+                getattr(self, f'{prefix}_id_or_path')
             config_name: Optional[str] = \
                 getattr(self, f'{prefix}_config_name')
             cfg_cls, _, _ = SUPPORTED_MODEL_TRIPLES[model_type_str]
@@ -409,8 +409,8 @@ class TransformerRunner:
                 config.is_decoder = True
                 config.add_cross_attention = True
             if self.is_random_model_type(model_type_str):
-                assert(hasattr(config, 'hidden_size')
-                assert(type(config.hidden_size == int))
+                assert(hasattr(config, 'hidden_size'))
+                assert(type(config.hidden_size) == int)
                 assert(hasattr(config, 'num_attention_heads'))
                 assert(type(config.num_attention_heads) == int)
             configs += config,
@@ -498,13 +498,12 @@ class TransformerRunner:
         LOGGER.info('Successfully initialised decoder.')
         enc_tokeniser = self.instantiated_tokeniser(enc_or_dec='enc')
         dec_tokeniser = self.instantiated_tokeniser(enc_or_dec='dec')
-        # The en- and decoder configurations should agree on whether to use
-        # TorchScript or not.
-        dec_config.torchscript = True if enc_config.torchscript else False
         trf = Transformer(encoder,
                           decoder,
+                          enc_config,
                           dec_config,
-                          self.beam_size,
+                          tie_weights=self.enc_id_or_path == self.dec_id_or_path,
+                          beam_size=self.beam_size,
                           max_length=self.max_query_language_length,
                           sos_id=dec_tokeniser.cls_token_id,
                           eos_id=dec_tokeniser.sep_token_id)
@@ -1033,8 +1032,7 @@ class TransformerRunner:
         self.log_start_of_training(number_data_points=number_train)
         train_info: TrainInfo = {'steps_sum': 0, 'loss_sum': 0.}
         best_bleu = TransformerRunner.WORST_BLEU_SCORE
-        validation_raw_dps = self.raw_data_points_for_ml_stage(MLStage.VALIDATE,
-                                                               perform_sampling=True)
+        validation_raw_dps: Optional[List[RawDataPoint]] = None  # filled later
         for epoch in range(self.training_epochs):
             epoch_info = self.run_single_training_epoch(epoch,
                                                         dl,
@@ -1045,6 +1043,10 @@ class TransformerRunner:
             if self.perform_validation and (epoch + 1) % self.save_frequency == 0:
                 train_info['steps_sum'] = 0
                 train_info['loss_sum'] = 0.  # TODO(Niels): Move outside of `if`?
+                if validation_raw_dps is None:
+                    validation_raw_dps = \
+                        self.raw_data_points_for_ml_stage(MLStage.VALIDATE,
+                                                          perform_sampling=True)
                 bleu_score = self.run_single_evaluation_epoch(validation_raw_dps,
                                                               MLStage.VALIDATE)
                 if  bleu_score > best_bleu:

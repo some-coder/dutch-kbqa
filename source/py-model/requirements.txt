@@ -5,7 +5,6 @@ chardet==4.0.0
 click==7.1.2
 Cython==0.29.22
 dataclasses==0.6
--e git+git@github.com:some-coder/dutch-kbqa@1015cd0dc6a9ee0abac8e8c29b0a25d30fbd3c60#egg=dutch_kbqa_py_model&subdirectory=source/py-model
 fairseq==0.10.2
 filelock==3.0.12
 Flask==1.1.2
