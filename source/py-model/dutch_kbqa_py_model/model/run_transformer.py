@@ -40,6 +40,9 @@ from transformers import PretrainedConfig, \
                          RobertaConfig, \
                          RobertaModel, \
                          RobertaTokenizer, \
+                         XLMRobertaConfig, \
+                         XLMRobertaModel, \
+                         XLMRobertaTokenizer, \
                          AdamW, \
                          get_linear_schedule_with_warmup
 from nltk.translate.bleu_score import corpus_bleu
@@ -82,10 +85,14 @@ class ModelTriple(NamedTuple):
 # used (like it would be normally), except that the model's weights are
 # initialised randomly. So the model is parameterised as if its pretraining
 # weights have never been imposed.
+#   Note: unless present in the name, the 'base' model is implied, and not
+# the 'large' or 'xl' model variants.
 SupportedModelType = Union[Literal['bert'],
                            Literal['random-bert'],
                            Literal['roberta'],
-                           Literal['random-roberta']]
+                           Literal['random-roberta'],
+                           Literal['xlm-roberta'],
+                           Literal['random-xlm-roberta']]
 # Either an encoder ('enc') or a decoder ('dec') language model.
 EncOrDec = Union[Literal['enc'], Literal['dec']]
 # An encoder language model for use in the first half of a transformer.
@@ -128,7 +135,9 @@ SUPPORTED_MODEL_TRIPLES: Dict[SupportedModelType, ModelTriple] = \
     {'bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
      'random-bert': ModelTriple(BertConfig, BertModel, BertTokenizer),
      'roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer),
-     'random-roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer)}
+     'random-roberta': ModelTriple(RobertaConfig, RobertaModel, RobertaTokenizer),
+     'xlm-roberta': ModelTriple(XLMRobertaConfig, XLMRobertaModel, XLMRobertaTokenizer),
+     'random-xlm-roberta': ModelTriple(XLMRobertaConfig, XLMRobertaModel, XLMRobertaTokenizer)}
 
 
 class TransformerRunner:
@@ -186,7 +195,8 @@ class TransformerRunner:
                  training_epochs: Optional[int],
                  local_rank: int,
                  save_frequency: int,
-                 load_file: Optional[Path]) -> None:
+                 load_file: Optional[Path],
+                 follow_spbert_seed_protocol: bool) -> None:
         """Constructs a new transformer runner.
         
         :param enc_model_type: The encoder language model type.
@@ -259,6 +269,8 @@ class TransformerRunner:
         :param load_file: (Only required when `perform_testing` is `True`.) A
             file system path to a `.bin` file. The path to a trained
             transformer.
+        :param follow_spbert_seed_protocol: Whether to follow the same PRNG
+            seed protocol as is done in Tran et al. (2021)'s SPBERT paper.
         """
         self.enc_model_type = enc_model_type
         self.dec_model_type = dec_model_type
@@ -291,6 +303,7 @@ class TransformerRunner:
         self.local_rank = local_rank
         self.save_frequency = save_frequency
         self.load_file = load_file
+        self.follow_spbert_seed_protocol = follow_spbert_seed_protocol
 
         self.log_arguments()
 
@@ -299,7 +312,8 @@ class TransformerRunner:
         self.number_gpus: int = number_gpus
         self.log_device_and_number_of_gpus_in_use()
 
-        set_seeds(seed=self.seed)
+        set_seeds(seed=self.seed,
+                  follow_spbert_seed_protocol=self.follow_spbert_seed_protocol)
         self.ensure_save_dir_exists()
 
         self.trf: Transformer

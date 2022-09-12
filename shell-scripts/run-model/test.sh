@@ -17,8 +17,19 @@ else
 	exit 1;
 fi
 
-PYTHONHASHSEED=$SEED  # Should be set statically. See Stack Overflow question ID 25684349.
-CUBLAS_WORKSPACE_CONFIG=$MY_CUBLAS_WORKSPACE_CONFIG
+cmake --version &>/dev/null || {
+	echo 'You need CMake (`cmake`) in order to run `sentencepiece`, a library needed by XLM-RoBERTa!';
+	exit 1;
+}
+
+if [[ "${SPBERT_SEED_PROTOCOL}" = "True" || "${SPBERT_SEED_PROTOCOL}" = "true" || "${SPBERT_SEED_PROTOCOL}" = "T" || "${SPBERT_SEED_PROTOCOL}" = "t" ]]; then
+        echo 'Following SPBERT seed protocol.';
+        # `$PYTHONHASHSEED` and `$CUBLAS_WORKSPACE_CONFIG` are not set in the SPBERT codebase.
+else
+        echo 'Not following SPBERT seed protocol.';
+	export PYTHONHASHSEED=$SEED  # Should be set statically. See Stack Overflow question ID 25684349.
+	export CUBLAS_WORKSPACE_CONFIG=$MY_CUBLAS_WORKSPACE_CONFIG
+fi
 python3 source/py-model/dutch_kbqa_py_model/main.py \
 	--enc_model_type "$ENC_MODEL_TYPE" \
 	--dec_model_type "$DEC_MODEL_TYPE" \
@@ -37,7 +48,8 @@ python3 source/py-model/dutch_kbqa_py_model/main.py \
 	--save_dir "${MODELS_DIR}/${MODEL_NAME}-test" \
 	--seed $SEED \
 	--non_training_batch_size $NON_TRAINING_BATCH_SIZE \
-	--load_file "${MODELS_DIR}/${MODEL_NAME}"
+	--load_file "${MODELS_DIR}/${MODEL_NAME}" \
+        --follow_spbert_seed_protocol $SPBERT_SEED_PROTOCOL
 # Note that you can add more arguments if you wish to change the script; see
 # the `.sample-env` for options.
 

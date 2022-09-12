@@ -288,6 +288,13 @@ SEED=42
 # `./shell-scripts/run-model/[train|test].sh`.
 MY_CUBLAS_WORKSPACE_CONFIG=":4096:8"
 
+# `$SPBERT_SEED_PROTOCOL` stores a Boolean. If set to `"True"`, `"true"`,
+# `"T"` or `"t"`, the same PRNG seeding protocol is used as is performed in
+# Tran, Phan, Anibal, Nguyen & Nguyen (2021)'s code base for SPBert.
+#   Legal values, beside the above-mentioned ones, are: `"False"`, `"false"`,
+# `"F"`, and `"f"`. All other values are illegal. 
+SPBERT_SEED_PROTOCOL="True"
+
 # `$DEBUG_MODE` enables debugging modes wherever available in the programs
 # under `source/`. You will be warned during executions of programs if this
 # mode is turned on.

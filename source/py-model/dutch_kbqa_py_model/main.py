@@ -236,6 +236,14 @@ def dutch_kbqa_python_model_argument_parser() -> ArgumentParser:
                         help='(Only required when testing.) A file ' +
                              'system path to a `.bin` file. The path to a ' +
                              'trained transformer.')
+    parser.add_argument('--follow_spbert_seed_protocol',
+                        type=str,
+                        choices=TRUE_STRINGS + 
+                                FALSE_STRINGS,
+                        help='Whether to follow the same PRNG seed protocol ' +
+                             'as is done in Tran et al. (2021)\'s SPBERT ' +
+                             'paper.',
+                        required=True)
     return parser
 
 
@@ -344,7 +352,9 @@ def dutch_kbqa_model_namespace_to_runner(parser: ArgumentParser) -> \
         local_rank=ns.local_rank,
         save_frequency=ns.save_frequency,
         load_file=
-            None if ns.load_file is None else Path(ns.load_file).resolve()
+            None if ns.load_file is None else Path(ns.load_file).resolve(),
+        follow_spbert_seed_protocol=
+            interpret_boolean_argument_parser_choice(ns.follow_spbert_seed_protocol)
     )
 
 

@@ -162,7 +162,7 @@ def pytorch_version() -> SemanticVersion:
 LEGAL_SEEDS_RANGE: Tuple[int, int] = (1, 2 ** 32 - 1)
 
 
-def set_seeds(seed: int) -> None:
+def set_seeds(seed: int, follow_spbert_seed_protocol: bool) -> None:
     """Initialises pseudo-random number generators (PRNGs) across the program's
     components that rely on them.
     
@@ -175,6 +175,8 @@ def set_seeds(seed: int) -> None:
     singular systems.
 
     :param seed: The seed to use.
+    :param follow_spbert_seed_protocol: Whether to follow the PRNG seed protocol
+        used in Tran et al. (2021)'s SPBERT paper.
     :throws: `AssertionError` if `seed` does not lie within the range of legal
         seeds.
     """
@@ -182,14 +184,21 @@ def set_seeds(seed: int) -> None:
     try:
         assert(seed in range(*LEGAL_SEEDS_RANGE))
         random.seed(seed)
+        if follow_spbert_seed_protocol:
+            # Included for compatibility. Should not have any effect; see 
+            # StackOverflow question ID 25684349.
+            os.environ['PYTHONHASHSEED'] = str(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
-        if version.minor >= 8:
-            torch.use_deterministic_algorithms(mode=True)
+        if follow_spbert_seed_protocol:
+            cudnn.deterministic = True  # even when `version.minor` >= 8
         else:
-            cudnn.deterministic = True
-        torch.cuda.manual_seed(seed)
-        cudnn.benchmark = False
+            if version.minor >= 8:
+                torch.use_deterministic_algorithms(mode=True)
+            else:
+                cudnn.deterministic = True
+            torch.cuda.manual_seed(seed)
+            cudnn.benchmark = False
     except AssertionError:
         print('Your PRNG seed, %d, does not lie within [%d, %d]!' %
               (seed,
