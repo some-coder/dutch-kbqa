@@ -1,0 +1,305 @@
+# EXAMPLE DOTENV FILE
+#
+# Make a copy of this file with the name `.env`. This `.env` is often called a
+# 'dotenv file'. It serves as a configuration file for running programs in
+# this repository.
+#   The guides in the `documentation/` subdirectory will sometimes require you
+# to change values in this file. Do so to generate the right outputs.
+#   Unless marked with '(Optional.)', the environment variables below must be
+# set to some value.
+
+
+#     General
+
+
+
+# `$PROJECT_ROOT` stores the file system location of this project.
+#   Note: the path must NOT end in a slash ('/').
+PROJECT_ROOT="/path/to/project/root"
+
+
+
+
+#     Dataset creation
+
+
+
+
+# `$GOOGLE_APPLICATION_CREDENTIALS` stores the file system location of your
+# Google Cloud service account credentials, which Google Cloud hands to you in
+# the form of a JSON file.
+#   Refer to `documentation/google-cloud.md` for details.
+GOOGLE_APPLICATION_CREDENTIALS="${PROJECT_ROOT}/.service-account-key.json"
+
+# `$SPLIT` stores the LC-QuAD 2.0 dataset split that you want programs to work
+# on. The only two legal values for it are: "train" and "test".
+SPLIT="train"
+
+# `$SOURCE_LANGUAGE` stores the ISO 639-1 code of the natural language in which
+# LC-QuAD 2.0 is expressed.
+#   Since LC-QuAD 2.0 is published in English, leave it set to "en".
+SOURCE_LANGUAGE="en"
+
+# `$TARGET_LANGUAGE` stores the ISO 639-1 code of the natural language in which
+# the derived dataset is expressed.
+#   The paper associated to this repostory uses Dutch, so the default is "nl".
+#   Note that, if you want to use any other natural language than Dutch, you
+# need to make some code changes. Specifically, multiple `enum`s probably need
+# an additional entry for your extra language.
+TARGET_LANGUAGE="nl"
+
+# `$TRANSLATE_SAVE_FREQ` stores the frequency of saving to disk during
+# translation of the LC-QuAD 2.0 dataset from `$SOURCE_LANGUAGE` to
+# `$TARGET_LANGUAGE`, expressed as the number of entries to process between
+# two successive saves-to-disk.
+TRANSLATE_SAVE_FREQ=50
+
+# `$LABEL_LANGUAGE` stores the ISO 639-1 code of the natural language in which
+# to collect labels for WikiData entities and properties.
+#   It has two legal values: `$SOURCE_LANGUAGE` and `TARGET_LANGUAGE`. See
+# above.
+LABEL_LANGUAGE="$SOURCE_LANGUAGE"
+
+# `VALIDATION_FRACTION` stores a fraction (0.0 and 1.0 both inclusive) that
+# describes how large a fraction of the total amount of question-answer pairs
+# in the original training partition of LC-QuAD 2.0 should go to the derived
+# dataset's 'validation' subset; the remainder is sent to the 'train' subset.
+#   (This environment variable has no effect on the 'test' part of the original
+# LC-QuAD 2.0 dataset.)
+VALIDATION_FRACTION="0.11111111111111111111"
+
+# (Optional.) `$REFERENCE_TRANSLATED_FILE` stores the file system location of a
+# 'reference translation' of the LC-QuAD 2.0 dataset in `$TARGET_LANGUAGE`.
+#   If supplied, you can run the program
+# `shell-scripts/validation/valide-translation.sh` to see how much your
+# translation deviates from the reference. It is largely meant for debugging,
+# and is not used at any point during the main workflow.
+REFERENCE_TRANSLATED_FILE="/path/to/translation.json"
+
+# (Optional.) `$REFERENCE_MASKED_FILE` stores the file system location of a
+# 'reference masked series of question-answer pairs' of the LC-QuAD 2.0
+# dataset in `$TARGET_LANGUAGE`.
+#   If supplied, you can run the program
+# `shell-scripts/validation/validate-masking.sh` to see how much your
+# translated and masked set of question-answer pairs deviates from the
+# reference. It is largely meant for debugging, and is not used at any point
+# during the main workflow.
+REFERENCE_MASKED_FILE="/path/to/masks.json"
+
+
+
+
+#     Model training, validation, and testing
+
+
+
+
+# `$MODELS_DIR` stores the directory under which all trained transformer models
+# should reside. Although it is possible to change this path, there is no need
+# to change it.
+MODELS_DIR="${PROJECT_ROOT}/resources/models"
+
+# `$MODEL_NAME` stores the name of your transformer model. Once it has been
+# saved to disk, it can be found under `${MODELS_DIR}/${MODEL_NAME}`.
+MODEL_NAME="apx-xlm-roberta-spbert"
+
+# `$PY_MODEL_PACKAGE_MANAGER` stores the Python package manager to use when
+# running `source/py-model`. It must be either `conda` or `pip`.
+#   `$PY_MODEL_PACKAGE_MANAGER` is only relevant to running
+# `source/py-model`; when running `source/py-ds-create`, `pip` is always used.
+PY_MODEL_PACKAGE_MANAGER="pip"
+
+
+# In the following, consider calling
+# 
+# ```
+# source source/py-model/.venv/bin/activate
+# python3 source/py-model/dutch_kbqa_py_model/main.py --help
+# deactivate
+# ```
+#
+# to learn more about (allowed values for) the environment variables. They
+# correspond one-to-one with the command-line arguments to `main.py`.
+
+
+# `$ENC_MODEL_TYPE` stores the type of encoder language model type to use.
+ENC_MODEL_TYPE="xlm-roberta"
+
+# `$DEC_MODEL_TYPE` stores the type of decoder language model type to use.
+DEC_MODEL_TYPE="bert"
+
+# `$ENC_ID_OR_PATH` stores either a file system path to a pre-trained
+# encoder language model (enclosing folder or configuration JSON file), or a
+# model ID of a model hosted on `huggingface.co`.
+ENC_ID_OR_PATH="xlm-roberta-base"
+
+# `$DEC_ID_OR_PATH` stores either a file system path to a pre-trained
+# decoder language model (enclosing folder or configuration JSON file), or a
+# model ID of a model hosted on `huggingface.co`.
+DEC_ID_OR_PATH="razent/spbert-mlm-base"
+
+# `$DATASET_DIR` stores a file system path to a directory. It is the directory
+# under which the input training, validation, and testing data to transformer
+# models resides.
+DATASET_DIR="${PROJECT_ROOT}/resources/dataset/finalised"
+
+# `$NATURAL_LANGUAGE` stores a natural language. It is the the input language
+# of the transformer.
+NATURAL_LANGUAGE="$TARGET_LANGUAGE"
+
+# `$QUERY_LANGUAGE` stores a query language. It is the output language of the
+# transformer.
+QUERY_LANGUAGE="sparql"
+
+# `$MAX_NATURAL_LANGUAGE_LENGTH` stores the maximum (inclusive) number of
+# tokens to include in tokenised natural language inputs. Truncation and
+# padding occur for too long and too short sequences, respectively. Must be
+# strictly positive.
+MAX_NATURAL_LANGUAGE_LENGTH=64
+
+# `$MAX_QUERY_LANGUAGE_LENGTH` stores the maximum (inclusive) number of
+# tokens to include in tokenised natural language inputs. Truncation and
+# padding occur for too long and too short sequences, respectively. Must be
+# strictly positive.
+MAX_QUERY_LANGUAGE_LENGTH=128
+
+# `$LEARNING_RATE` stores the initial learning rate for the Adam optimiser.
+# Must be strictly positive.
+LEARNING_RATE=0.00002  # 2e-5
+
+# `$BEAM_SIZE` stores the beam size to use in the beam search at the
+# transformer's output layer (for queries). Must be strictly positive.
+BEAM_SIZE=10
+
+# (Optional.) `$ENC_CONFIG_NAME` stores an encoder language model if
+# you don't wish to use the default one associated with `enc_model_type`.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# ENC_CONFIG_NAME="bert-base-multilingual-uncased"  # For example.
+
+# (Optional.) `$DEC_CONFIG_NAME` stores a decoder language model if
+# you don't wish to use the default one associated with `dec_model_type`.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# DEC_CONFIG_NAME="bert-base-multilingual-uncased"  # For example.
+
+# (Optional.) `$ENC_TOKENISER_NAME` stores an encoder language model
+# tokeniser if you don't wish to use the default one associated with
+# `enc_model_type`.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# ENC_TOKENISER_NAME="bert-base-multilingual-uncased"  # For example.
+
+# (Optional.) `$DEC_TOKENISER_NAME` stores an en- and decoder language model
+# tokeniser if you don't wish to use the default one associated with
+# `dec_model_type`.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# DEC_TOKENISER_NAME="bert-base-multilingual-uncased"  # For example.
+
+# (Optional.) `$TREAT_TRANSFORMER_AS_UNCASED` stores a Boolean that indicates
+# whether to treat the transformer as uncased.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# TREAT_TRANSFORMER_AS_UNCASED="true"  # For example.
+
+# (Optional.) `$USE_CUDA` stores a Boolean that indicates whether to use CUDA
+# if it is available.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# USE_CUDA="false"  # For example.
+
+# `$TRAINING_BATCH_SIZE` stores the batch size per GPU or CPU during training.
+# Must be strictly positive.
+TRAINING_BATCH_SIZE=8
+
+# `$NON_TRAINING_BATCH_SIZE` stores the batch size per GPU or CPU during
+# anything but training. Must be strictly positive.
+NON_TRAINING_BATCH_SIZE=8
+
+# (Optional.) `$GRADIENT_ACCUMULATION_STEPS` stores the number of parameter
+# update steps to accumulate before performing a single backpropagation. Must
+# be strictly positive.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# GRADIENT_ACCUMULATION_STEPS=3  # For example.
+
+# `$WEIGHT_DECAY` stores the weight decay scalar. Must be non-negative.
+WEIGHT_DECAY=0.01  # 1e-2
+
+# (Optional.) `$ADAM_EPSILON` stores a denominator numerical stability term to
+# use for Adam. Is 'epsilon hat' on page 2 of Kingma and Ba (2014). Must be
+# strictly positive.
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# ADAM_EPSILON=0.000001  # For example. 1e-6 is the default used in TensorFlow.
+
+# `$TRAINING_EPOCHS` stores the number of training epochs to perform. Must be
+# strictly positive.
+TRAINING_EPOCHS=200
+
+# `$LOCAL_RANK` stores a local rank for processes to use during distributed
+# training. If given explicitly, a strictly non-negative integer or the value
+# `NO_LOCAL_RANK` if you wish not to use distributed execution. (Call `--help`
+# as explained above to learn what value `NO_LOCAL_RANK` is; it must be a
+# strictly negative value.)
+#   To use this environment variable, you should also update
+# `shell-scripts/run-model/train.sh` and `shell-scripts/run-model/test.sh`
+# accordingly.
+# LOCAL_RANK=2  # For example.
+
+# `$SAVE_FREQUENCY` stores the number of epochs to complete before performing
+# a(nother) save to disk. Must be strictly positive.
+SAVE_FREQUENCY=10
+
+# (See `$SEED` below to control randomness of the model.)
+
+
+
+
+#     Reproducibility parameters
+
+
+
+
+# `$SEED` stores a pseudo-random number generator (PRNG) initialisation value
+# to use. (This argument is required to encourage reproducibility in model
+# results. Take care to switch seeds if it is your intention to obtain varying
+# results.) Must be an integer in the range [1, 2^32 - 1], both ends inclusive.
+SEED=50
+
+# `$MY_CUBLAS_WORKSPACE_CONFIG` stores the configuration of the program's cuBLAS
+# (NVIDIA CUDA Basic Linear Algebra Subprograms) library workspace. Its value
+# needs to be one of ":4096:8" or ":16:8" in order to help guarantee
+# reproducibility. See
+# `https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility`
+# for more information.
+#   Note that the actual environment variable that will need to be set is
+# `CUBLAS_WORKSPACE_CONFIG` and not `MY_CUBLAS_WORKSPACE_CONFIG`; the former
+# environment variable is set during the commands
+# `./shell-scripts/run-model/[train|test].sh`.
+MY_CUBLAS_WORKSPACE_CONFIG=":4096:8"
+
+# `$SPBERT_SEED_PROTOCOL` stores a Boolean. If set to `"True"`, `"true"`,
+# `"T"` or `"t"`, the same PRNG seeding protocol is used as is performed in
+# Tran, Phan, Anibal, Nguyen & Nguyen (2021)'s code base for SPBert.
+#   Legal values, beside the above-mentioned ones, are: `"False"`, `"false"`,
+# `"F"`, and `"f"`. All other values are illegal. 
+SPBERT_SEED_PROTOCOL="False"
+
+# `$DEBUG_MODE` enables debugging modes wherever available in the programs
+# under `source/`. You will be warned during executions of programs if this
+# mode is turned on.
+#   The debug mode emits extra logging information.
+#   Legal values are "True", "T", "true", "t" (for enabling debug mode), and
+# "False", "F", "false", and "f" (for disabling debug mode).
+DEBUG_MODE="False"
+
