@@ -1,12 +1,50 @@
 # Installing Python Dependencies for Running Transformer Models
 
-Before running any of the code in `source/py-model/`, you need to have installed some dependencies. This document explains how you install them in 5 steps.
+Before running any of the code in `source/py-model/`, you need to have installed some dependencies. Depending on whether you want to train distributively, you can choose between two 'routes':
 
-## Step 1: Ensure `python3` and `pip3` exist on your system
+1. Use the `pip3` package manager. Distributed training via NVIDIA Apex will be disabled.
+2. Use the `conda` package manager. Distributed training via NVIDIA Apex will be enabled.
+
+We will first treat route 1. Then, route 2 is discussed.
+
+## Route 1: Download dependencies using `pip3`
+
+By using `pip3` instead of `conda`, NVIDIA Apex will be disabled. At this cost of being unable to train distributively, you may find that this route is easier to set up.
+
+This route consists of 3 steps.
+
+### Step 1: Ensure `python3` and `pip3` exist on your system.
 
 Python 3 and Pip 3 are both needed later on. Use your favorite package manager if either `python3 --version` or `pip3 --version` does not return with a version number. For example, Ubuntu uses `apt`, whereas macOS uses `brew`.
 
-## Step 2: Install Miniconda
+### Step 2: Install the dependencies
+
+Change directories from `$PROJECT_ROOT` to `$PROJECT_ROOT/source/py-model/`, where `$PROJECT_ROOT` is the root location of this repository. Then install dependencies by entering the following commands:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/active
+pip3 install -r requirements.txt
+pip3 install -e .
+```
+
+Then move back to `$PROJECT_ROOT`.
+
+### Step 3: Done!
+
+You have successfully set up dependencies using `pip3`. Continue reading `documentation/run-model.md` to learn how to run the Transformer code.
+
+## Route 2: Download dependencies using `conda`
+
+By using `conda` instead of `pip3`, NVIDIA Apex will be available to you for distributed training. However, it may be more difficult to set up depending on your proficiency with the shell.
+
+This route consists of 6 steps.
+
+### Step 1: Ensure `python3` and `pip3` exist on your system
+
+Python 3 and Pip 3 are both needed later on. Use your favorite package manager if either `python3 --version` or `pip3 --version` does not return with a version number. For example, Ubuntu uses `apt`, whereas macOS uses `brew`.
+
+### Step 2: Install Miniconda
 
 See the [regular instructions for installing Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#regular-installation) for install instructions per OS. We'll follow the one for Linux.
 
@@ -34,7 +72,7 @@ Finally and optionally, update your Conda installation:
 conda update -n base -c defaults conda  # press 'y' if needed
 ```
 
-## Step 3: Create and activate a `source/py-model/` Conda environment
+### Step 3: Create and activate a `source/py-model/` Conda environment
 
 Move to the project's `source/py-model/` subdirectory. Then create a Conda environment by calling
 
@@ -60,7 +98,7 @@ Once the Conda environment is activated, install pre-defined dependencies listed
 conda env update --prefix $PWD/.conda-env --file environment.yaml --prune
 ```
 
-## Step 4: Build PyTorch from source
+### Step 4: Build PyTorch from source
 
 While still having your Conda environment activated, change directory to `source/` by calling `cd ..`. Then follow the ["build PyTorch from source" guide](https://github.com/pytorch/pytorch#from-source) on the official PyTorch GitHub repository. It is strongly recommended that you build with CUDA support enabled.
 
@@ -74,7 +112,7 @@ While still having your Conda environment activated, change directory to `source
 
 **Tip 5.** Once the installation has finished, test out PyTorch by opening a Python REPL (`python3`) and calling `import torch`. Does `torch.cuda.is_available()` work? Does a call to `torch.cuda.device_count()` yield the same number of GPUs you have in your PC? Can you create a simple tensor via `torch.tensor([[1, 2], [3, 4]], dtype=torch.float)`? It may be that PyTorch complains about actually wanting `python3 setup.py develop` instead of `python3 setup.py install`; if so, quit the REPL and call that command.
 
-## Step 5: Build NVIDIA Apex from source
+### Step 5: Build NVIDIA Apex from source
 
 Within the same `source/` directory, follow the ["build NVIDIA Apex from source" guide](https://github.com/NVIDIA/apex#from-source) on the official NVIDIA Apex GitHub repository.
 
@@ -83,4 +121,8 @@ Within the same `source/` directory, follow the ["build NVIDIA Apex from source"
 **Tip 2.** NVIDIA Apex shouldn't take as long to build as PyTorch.
 
 **Tip 3.** Again, test your installation: enter a REPL, and call `import apex` and `ddp = apex.parallel.DistributedDataParallel`. If both work, all should be OK.
+
+### Step 6: Done!
+
+You have successfully set up dependencies using `conda`. Continue reading `documentation/run-model.md` to learn how to run the Transformer code.
 
