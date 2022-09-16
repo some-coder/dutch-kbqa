@@ -37,5 +37,5 @@ This project would not have been possible without:
 
 ## Contact
 
-Please contact Niels de Jong via GitHub.
+Please contact <a href="mailto:najong99@hotmail.nl">Niels de Jong via email</a>, or open an issue in the _Issues_ tab of this repository.
 
