@@ -1,6 +1,6 @@
 # Dutch KBQA
 
-This Git repository stores the code for the paper _BERT-based Transformer Fine-Turning for Dutch WikiData Question-Answering_, written by and presented at the 32nd Meeting of Computational Linguistics in the Netherlands (CLIN 2022) by Niels de Jong and Dr. Gosse Bouma from the University of Groningen, Faculty of Arts.
+This Git repository stores the code for the paper _BERT-based Transformer Fine-Tuning for Dutch Wikidata Question-Answering_, written by and presented at the 32nd Meeting of Computational Linguistics in the Netherlands (CLIN 32, 2022) by Niels de Jong and Dr. Gosse Bouma from the University of Groningen, Faculty of Arts.
 
 ## Overview
 
